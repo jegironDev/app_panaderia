@@ -1,0 +1,74 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <h1 class="mb-4">Nuevo Usuario</h1>
+
+  <div *ngIf="exito" class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="alert alert-success mb-3">Usuario creado exitosamente</div>
+      <p class="mb-3"><strong>Nombre de acceso:</strong> {{ usuarioGenerado }}</p>
+      <button class="btn btn-primary" (click)="irAlListado()">Ir al listado</button>
+    </div>
+  </div>
+
+  <div *ngIf="!exito" class="card shadow-sm">
+    <div class="card-body">
+      <form (ngSubmit)="guardarUsuario()">
+        <div class="mb-3">
+          <label class="form-label">Contraseña *</label>
+          <input class="form-control" type="password" name="contrasena" [(ngModel)]="contrasena" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Primer nombre *</label>
+          <input class="form-control" name="primerNombre" [(ngModel)]="primerNombre" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Segundo nombre (opcional)</label>
+          <input class="form-control" name="segundoNombre" [(ngModel)]="segundoNombre" (ngModelChange)="normalizarCampo($event, 'segundoNombre')">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Primer apellido *</label>
+          <input class="form-control" name="primerApellido" [(ngModel)]="primerApellido" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Segundo apellido (opcional)</label>
+          <input class="form-control" name="segundoApellido" [(ngModel)]="segundoApellido" (ngModelChange)="normalizarCampo($event, 'segundoApellido')">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Puesto (opcional)</label>
+          <input class="form-control" name="puesto" [(ngModel)]="puesto" (ngModelChange)="normalizarCampo($event, 'puesto')">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Tipo *</label>
+          <select class="form-select" name="tipo" [(ngModel)]="tipo" (ngModelChange)="onTipoChange()" required>
+            <option *ngFor="let tipo of tiposUsuario" [ngValue]="tipo">{{ tipo }}</option>
+          </select>
+        </div>
+
+        <div class="mb-3" *ngIf="tipo === 'ESTANDAR'">
+          <label class="form-label">Sucursal *</label>
+          <select class="form-select" name="identificadorSucursal" [(ngModel)]="identificadorSucursal" required>
+            <option [ngValue]="null">Seleccione una sucursal</option>
+            <option *ngFor="let sucursal of sucursales" [ngValue]="sucursal.ID_SUCURSAL">
+              {{ sucursal.ID_SUCURSAL }} - {{ sucursal.NOMBRE }}
+            </option>
+          </select>
+          <small *ngIf="cargandoSucursales" class="text-muted">Cargando sucursales...</small>
+        </div>
+
+        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary" routerLink="/usuarios">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>

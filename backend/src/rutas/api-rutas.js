@@ -9,7 +9,8 @@ import { actualizarEstadoUsuario, consultarUsuario, listarUsuarios, modificarUsu
 import { agregarRolUsuario, eliminarRolUsuario, listarRoles, listarRolesUsuario } from '../controladores/roles-controlador.js';
 import { agregarPermisoRol, eliminarPermisoRol, listarPermisos, listarPermisosEfectivosUsuario, listarPermisosRol } from '../controladores/permisos-controlador.js';
 import { obtenerEstadoConexion } from '../controladores/estado-controlador.js';
-import { requerirPermiso, requerirSesion } from '../intermediarios/autorizacion.js';
+import { listarSucursalesActivas } from '../controladores/sucursales-controlador.js';
+import { requerirAlgunPermiso, requerirPermiso, requerirSesion } from '../intermediarios/autorizacion.js';
 import { manejadorAsincrono } from '../intermediarios/manejo-errores.js';
 
 export const rutasApi = Router();
@@ -18,6 +19,7 @@ rutasApi.post('/acceso/inicializar', manejadorAsincrono(inicializarAccesoUsuario
 rutasApi.post('/acceso/iniciar-sesion', manejadorAsincrono(iniciarSesionUsuario));
 rutasApi.post('/acceso/cerrar-sesion', cerrarSesionUsuario);
 rutasApi.get('/estado-conexion', obtenerEstadoConexion);
+rutasApi.get('/sucursales', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_USUARIOS', 'EDITAR_USUARIOS']), manejadorAsincrono(listarSucursalesActivas));
 rutasApi.get('/productos', manejadorAsincrono(requerirSesion), manejadorAsincrono(listarProductos));
 rutasApi.get('/usuarios', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(listarUsuarios));
 rutasApi.get('/usuarios/:id', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(consultarUsuario));

@@ -1,0 +1,47 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <h1 class="mb-4">Editar usuario</h1>
+
+  <div *ngIf="cargando" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>
+  </div>
+
+  <div *ngIf="!cargando" class="card shadow-sm">
+    <div class="card-body">
+      <form (ngSubmit)="actualizarUsuario()">
+        <div class="mb-3">
+          <label class="form-label" for="usuario">Nombre de acceso</label>
+          <input id="usuario" class="form-control" [value]="usuario" readonly>
+        </div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label class="form-label" for="primerNombre">Primer nombre *</label><input id="primerNombre" class="form-control" name="primerNombre" [(ngModel)]="primerNombre" required></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="segundoNombre">Segundo nombre</label><input id="segundoNombre" class="form-control" name="segundoNombre" [(ngModel)]="segundoNombre"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="primerApellido">Primer apellido *</label><input id="primerApellido" class="form-control" name="primerApellido" [(ngModel)]="primerApellido" required></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="segundoApellido">Segundo apellido</label><input id="segundoApellido" class="form-control" name="segundoApellido" [(ngModel)]="segundoApellido"></div>
+        </div>
+        <div class="mb-3"><label class="form-label" for="puesto">Puesto</label><input id="puesto" class="form-control" name="puesto" [(ngModel)]="puesto"></div>
+        <div class="mb-3">
+          <label class="form-label" for="tipo">Tipo *</label>
+          <select id="tipo" class="form-select" name="tipo" [(ngModel)]="tipo" (ngModelChange)="cambiarTipo()" required>
+            <option *ngFor="let opcion of tiposUsuario" [ngValue]="opcion">{{ opcion }}</option>
+          </select>
+        </div>
+        <div *ngIf="tipo === 'ESTANDAR'" class="mb-3">
+          <label class="form-label" for="sucursal">Sucursal *</label>
+          <select id="sucursal" class="form-select" name="identificadorSucursal" [(ngModel)]="identificadorSucursal" [disabled]="cargandoSucursales" required>
+            <option [ngValue]="null">Seleccione una sucursal</option>
+            <option *ngFor="let sucursal of sucursales" [ngValue]="sucursal.ID_SUCURSAL">{{ sucursal.ID_SUCURSAL }} - {{ sucursal.NOMBRE }}</option>
+          </select>
+          <small *ngIf="cargandoSucursales" class="text-muted">Cargando sucursales...</small>
+        </div>
+        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+        <div *ngIf="exito" class="alert alert-success">Usuario actualizado correctamente.</div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Guardar cambios</button>
+          <a class="btn btn-secondary" routerLink="/usuarios">Volver al listado</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>

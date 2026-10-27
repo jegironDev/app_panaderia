@@ -1,0 +1,35 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Usuarios</h1>
+    <a routerLink="/usuarios/nuevo" class="btn btn-primary">Nuevo usuario</a>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of usuarios">
+            <td>{{ u.USUARIO }}</td>
+            <td>{{ u.PRIMER_NOMBRE }} {{ u.PRIMER_APELLIDO }}</td>
+            <td>{{ u.ESTADO }}</td>
+            <td>
+              <a [routerLink]="['/usuarios', u.ID_USUARIO, 'editar']" class="btn btn-sm btn-outline-primary">Editar</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>

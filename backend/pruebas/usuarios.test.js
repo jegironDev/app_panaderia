@@ -83,36 +83,45 @@ test('POST /usuarios con datos inválidos responde 400', async () => {
 });
 
 test('POST /usuarios autorizado responde 201', async () => {
-  const nombre = `prueba_node_${Date.now()}`;
+  contexto.apellidoPrueba = `Node${Date.now()}`;
   const respuesta = await comprobarEstado('/usuarios', {
     method: 'POST', headers: conToken(tokenAdministrador),
-    body: JSON.stringify({ usuario: nombre, contrasena: process.env.PRUEBA_CONTRASENA_NUEVA, primerNombre: 'Prueba', primerApellido: 'Node', tipo: 'OPERATIVO' })
+    body: JSON.stringify({ contrasena: process.env.PRUEBA_CONTRASENA_NUEVA, primerNombre: 'Prueba', primerApellido: contexto.apellidoPrueba, tipo: 'OPERATIVO' })
   }, 201);
   contexto.usuarioPrueba = await respuesta.json();
-  assert.equal(contexto.usuarioPrueba.USUARIO, nombre);
+  assert.equal(contexto.usuarioPrueba.USUARIO, `p${contexto.apellidoPrueba.toLowerCase()}`);
   assert.equal(Object.hasOwn(contexto.usuarioPrueba, 'PSWD'), false);
 });
 
-test('POST /usuarios duplicado responde 409', async () => {
-  await comprobarEstado('/usuarios', {
+test('POST /usuarios genera una alternativa al encontrar una colisión', async () => {
+  const respuesta = await comprobarEstado('/usuarios', {
     method: 'POST', headers: conToken(tokenAdministrador),
-    body: JSON.stringify({ usuario: contexto.usuarioPrueba.USUARIO, contrasena: process.env.PRUEBA_CONTRASENA_NUEVA, primerNombre: 'Prueba', primerApellido: 'Node', tipo: 'OPERATIVO' })
-  }, 409);
+    body: JSON.stringify({ contrasena: process.env.PRUEBA_CONTRASENA_NUEVA, primerNombre: 'Prueba', primerApellido: contexto.apellidoPrueba, tipo: 'OPERATIVO' })
+  }, 201);
+  assert.equal((await respuesta.json()).USUARIO, `pr${contexto.apellidoPrueba.toLowerCase()}`);
 });
 
 test('GET /api/usuarios/:id valida consultas individuales', async () => {
-  await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { headers: conToken(tokenAdministrador) }, 200);
+  const respuesta = await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { headers: conToken(tokenAdministrador) }, 200);
+  const usuario = await respuesta.json();
+  assert.ok(['ID_USUARIO','ID_SUCURSAL','USUARIO','PRIMER_NOMBRE','SEGUNDO_NOMBRE','PRIMER_APELLIDO','SEGUNDO_APELLIDO','PUESTO','TIPO','ESTADO','BLOQUEADO','INICIOS_FALLIDOS','REQUIERE_CAMBIO_PSWD'].every(campo => Object.hasOwn(usuario, campo)));
+  assert.equal(Object.hasOwn(usuario, 'PSWD'), false);
   await comprobarEstado('/usuarios/abc', { headers: conToken(tokenAdministrador) }, 400);
   await comprobarEstado('/usuarios/999999', { headers: conToken(tokenAdministrador) }, 404);
 });
 
-test('PUT /usuarios/:id aplica autorización y validaciones', async () => {
-  const datosValidos = { primerNombre: 'PruebaEditada', primerApellido: 'Node', tipo: 'OPERATIVO' };
+test('PUT /usuarios/:id aplica autorización, campos opcionales y conserva el acceso', async () => {
+  const datosValidos = { primerNombre: 'PruebaEditada', segundoNombre: 'Dos', primerApellido: contexto.apellidoPrueba, segundoApellido: 'Final', puesto: 'Pruebas', tipo: 'OPERATIVO' };
   await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', body: JSON.stringify(datosValidos) }, 401);
   await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', headers: conToken(tokenSinPermiso), body: JSON.stringify(datosValidos) }, 403);
   await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', headers: conToken(tokenAdministrador), body: JSON.stringify({ tipo: 'NO_VALIDO' }) }, 400);
+  await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', headers: conToken(tokenAdministrador), body: JSON.stringify({ ...datosValidos, BLOQUEADO: 'S' }) }, 400);
   await comprobarEstado('/usuarios/999999', { method: 'PUT', headers: conToken(tokenAdministrador), body: JSON.stringify(datosValidos) }, 404);
-  await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', headers: conToken(tokenAdministrador), body: JSON.stringify(datosValidos) }, 200);
+  const respuesta = await comprobarEstado(`/usuarios/${contexto.usuarioPrueba.ID_USUARIO}`, { method: 'PUT', headers: conToken(tokenAdministrador), body: JSON.stringify(datosValidos) }, 200);
+  const usuarioEditado = await respuesta.json();
+  assert.equal(usuarioEditado.USUARIO, contexto.usuarioPrueba.USUARIO);
+  assert.equal(usuarioEditado.SEGUNDO_NOMBRE, 'Dos');
+  assert.equal(usuarioEditado.PUESTO, 'Pruebas');
 });
 
 test('PATCH /usuarios/:id/estado rechaza solicitudes no válidas', async () => {

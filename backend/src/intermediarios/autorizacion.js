@@ -33,3 +33,13 @@ export function requerirPermiso(codigoPermiso) {
     return siguiente();
   };
 }
+
+// Permite una ruta cuando la identidad posee al menos uno de los permisos indicados.
+export function requerirAlgunPermiso(codigosPermiso) {
+  return (solicitud, respuesta, siguiente) => {
+    if (!codigosPermiso.some(codigo => solicitud.identidad.permisos.includes(codigo))) {
+      return respuesta.status(403).json({ error: 'No tiene permiso para realizar esta operación' });
+    }
+    return siguiente();
+  };
+}

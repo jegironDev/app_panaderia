@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test:api": "node --test pruebas/usuarios.test.js"
+    "test:api": "node --test pruebas/*.test.js"
   },
   "dependencies": {
     "express": "^5.1.0",
