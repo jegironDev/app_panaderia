@@ -1,0 +1,15 @@
+# Secretos y configuraciones locales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*wallet*
+
+# Dependencias y artefactos generados
+**/node_modules/
+**/.angular/
+**/dist/
+*.log
