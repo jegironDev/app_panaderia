@@ -36,6 +36,37 @@ async function obtenerPermisosUsuario(conexion, identificadorUsuario) {
   return resultado.rows.map(fila => fila.CODIGO);
 }
 
+// Recupera la identidad actual desde Oracle para no confiar en permisos guardados en el cliente.
+export async function obtenerIdentidadActual(identificadorUsuario) {
+  const conexion = await obtenerConexion();
+
+  try {
+    const resultado = await conexion.execute(
+      `SELECT ID_USUARIO, ID_SUCURSAL, USUARIO, PRIMER_NOMBRE, PRIMER_APELLIDO,
+              ESTADO, BLOQUEADO
+         FROM USUARIO
+        WHERE ID_USUARIO = :identificadorUsuario`,
+      { identificadorUsuario },
+      formatoFilas,
+    );
+    const usuario = resultado.rows[0];
+
+    if (!usuario || usuario.ESTADO !== 'A' || usuario.BLOQUEADO !== 'N') {
+      return null;
+    }
+
+    return {
+      identificadorUsuario: usuario.ID_USUARIO,
+      identificadorSucursal: usuario.ID_SUCURSAL,
+      usuario: usuario.USUARIO,
+      nombre: `${usuario.PRIMER_NOMBRE} ${usuario.PRIMER_APELLIDO}`,
+      permisos: await obtenerPermisosUsuario(conexion, usuario.ID_USUARIO),
+    };
+  } finally {
+    await conexion.close();
+  }
+}
+
 // Registra un intento fallido sin revelar si el usuario existe.
 async function registrarIntentoFallido(conexion, identificadorUsuario) {
   if (!identificadorUsuario) {

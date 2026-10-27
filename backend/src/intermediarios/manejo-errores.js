@@ -1,6 +1,6 @@
 // Envía errores asíncronos al manejador común de Express.
 export const manejadorAsincrono = funcion => (solicitud, respuesta, siguiente) =>
-  Promise.resolve(funcion(solicitud, respuesta)).catch(siguiente);
+  Promise.resolve(funcion(solicitud, respuesta, siguiente)).catch(siguiente);
 
 // Evita revelar trazas, consultas o valores privados al cliente HTTP.
 export function manejarError(error, solicitud, respuesta, siguiente) {

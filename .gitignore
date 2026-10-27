@@ -16,3 +16,5 @@
 
 # Scripts Oracle locales de referencia
 /database/
+/database_v*/
+/agentes/
