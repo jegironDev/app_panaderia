@@ -13,3 +13,6 @@
 **/.angular/
 **/dist/
 *.log
+
+# Scripts Oracle locales de referencia
+/database/
