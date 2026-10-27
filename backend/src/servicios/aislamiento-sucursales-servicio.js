@@ -25,7 +25,7 @@ export function verificarAccesoSucursal(identidad, identificadorSucursalRecurso,
 export function obtenerFiltroSucursal(identidad, columnaSucursal = 'ID_SUCURSAL', permitirAccesoGlobal = false) {
   if (permitirAccesoGlobal) return { condicion: '', parametros: {} };
 
-  if (!/^[A-Z_]+$/.test(columnaSucursal)) {
+  if (!/^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)?$/.test(columnaSucursal)) {
     throw new Error('La columna de sucursal no es válida');
   }
 

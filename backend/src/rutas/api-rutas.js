@@ -10,6 +10,7 @@ import { agregarRolUsuario, eliminarRolUsuario, listarRoles, listarRolesUsuario 
 import { agregarPermisoRol, eliminarPermisoRol, listarPermisos, listarPermisosEfectivosUsuario, listarPermisosRol } from '../controladores/permisos-controlador.js';
 import { obtenerEstadoConexion } from '../controladores/estado-controlador.js';
 import { listarSucursalesActivas } from '../controladores/sucursales-controlador.js';
+import { autorizarPedidoRegistrado, consultarPedido, listarEstadosPedido, listarJornadas, listarPedidos, registrarPedido, registrarSolicitudCancelacion } from '../controladores/pedidos-controlador.js';
 import { requerirAlgunPermiso, requerirPermiso, requerirSesion } from '../intermediarios/autorizacion.js';
 import { manejadorAsincrono } from '../intermediarios/manejo-errores.js';
 
@@ -20,6 +21,13 @@ rutasApi.post('/acceso/iniciar-sesion', manejadorAsincrono(iniciarSesionUsuario)
 rutasApi.post('/acceso/cerrar-sesion', cerrarSesionUsuario);
 rutasApi.get('/estado-conexion', obtenerEstadoConexion);
 rutasApi.get('/sucursales', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_USUARIOS', 'EDITAR_USUARIOS']), manejadorAsincrono(listarSucursalesActivas));
+rutasApi.get('/pedidos/estados', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']), manejadorAsincrono(listarEstadosPedido));
+rutasApi.get('/pedidos/jornadas', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']), manejadorAsincrono(listarJornadas));
+rutasApi.get('/pedidos', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']), manejadorAsincrono(listarPedidos));
+rutasApi.get('/pedidos/:id', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']), manejadorAsincrono(consultarPedido));
+rutasApi.post('/pedidos', manejadorAsincrono(requerirSesion), requerirPermiso('CREAR_PEDIDOS'), manejadorAsincrono(registrarPedido));
+rutasApi.post('/pedidos/:id/autorizar', manejadorAsincrono(requerirSesion), requerirPermiso('AUTORIZAR_PEDIDOS'), manejadorAsincrono(autorizarPedidoRegistrado));
+rutasApi.post('/pedidos/:id/solicitudes-cancelacion', manejadorAsincrono(requerirSesion), requerirPermiso('SOLICITAR_CANCELACION_PEDIDOS'), manejadorAsincrono(registrarSolicitudCancelacion));
 rutasApi.get('/productos', manejadorAsincrono(requerirSesion), manejadorAsincrono(listarProductos));
 rutasApi.get('/usuarios', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(listarUsuarios));
 rutasApi.get('/usuarios/:id', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(consultarUsuario));

@@ -4,12 +4,13 @@ import { eliminarSesion } from '../servicios/sesiones-servicio.js';
 // Valida la entrada del inicio de sesión y devuelve una sesión sin contraseña.
 export async function iniciarSesionUsuario(solicitud, respuesta) {
   const { usuario, contrasena } = solicitud.body;
+  const nombreUsuario = typeof usuario === 'string' ? usuario.trim() : '';
 
-  if (!usuario || !contrasena) {
+  if (!nombreUsuario || !contrasena) {
     return respuesta.status(400).json({ error: 'Usuario y contraseña son obligatorios' });
   }
 
-  return respuesta.json(await iniciarSesion(usuario, contrasena));
+  return respuesta.json(await iniciarSesion(nombreUsuario, contrasena));
 }
 
 // Elimina el token enviado por encabezado para cerrar la sesión actual.

@@ -7,6 +7,19 @@ import { verificarSucursalActiva } from './sucursales-servicio.js';
 const formatoFilas = { outFormat: oracledb.OUT_FORMAT_OBJECT };
 const maximosIntentosUsuario = 40;
 
+// Verifica la unicidad funcional sin distinguir capitalización antes del INSERT.
+export async function existeNombreUsuarioSinDistinguirMayusculas(conexion, usuario) {
+  const resultado = await conexion.execute(
+    `SELECT 1
+       FROM USUARIO
+      WHERE UPPER(TRIM(USUARIO)) = :usuarioNormalizado
+        FETCH FIRST 1 ROW ONLY`,
+    { usuarioNormalizado: String(usuario).trim().toUpperCase() },
+    formatoFilas,
+  );
+  return Boolean(resultado.rows[0]);
+}
+
 // Consulta información administrativa segura de las cuentas registradas.
 export async function consultarUsuarios() {
   const conexion = await obtenerConexion();
@@ -34,6 +47,9 @@ export async function crearUsuario(datos) {
     for (let intento = 0; intento < maximosIntentosUsuario; intento += 1) {
       const usuario = candidatos.next().value;
       try {
+        if (await existeNombreUsuarioSinDistinguirMayusculas(conexion, usuario)) {
+          continue;
+        }
         const resultado = await conexion.execute(
           `INSERT INTO USUARIO
             (ID_SUCURSAL, USUARIO, PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO,

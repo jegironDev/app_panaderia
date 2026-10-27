@@ -1,0 +1,17 @@
+<app-barra-navegacion></app-barra-navegacion>
+<main class="container py-4"><div class="row justify-content-center"><div class="col-lg-9">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h1 class="mb-0">Crear pedido</h1><a routerLink="/pedidos" class="btn btn-outline-secondary">Volver al listado</a></div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div><div *ngIf="exito" class="alert alert-success">{{ exito }}</div>
+  <div *ngIf="cargandoCatalogos" class="text-center py-4">Cargando catálogos...</div>
+  <form *ngIf="!cargandoCatalogos" (ngSubmit)="guardar()" class="card shadow-sm"><div class="card-body">
+    <div class="mb-3"><label class="form-label" for="jornada">Jornada</label><select id="jornada" class="form-select" [(ngModel)]="identificadorJornada" name="jornada" required><option [ngValue]="null">Seleccione una jornada</option><option *ngFor="let jornada of jornadas" [ngValue]="jornada.ID_JORNADA">{{ jornada.NOMBRE }}</option></select></div>
+    <div class="mb-4"><label class="form-label" for="observaciones">Observaciones</label><textarea id="observaciones" class="form-control" [(ngModel)]="observaciones" name="observaciones" maxlength="300" rows="3"></textarea></div>
+    <h2 class="h5">Productos</h2>
+    <div *ngFor="let linea of lineas; let indice = index" class="row g-2 align-items-end mb-2">
+      <div class="col-md-7"><label class="form-label">Producto</label><select class="form-select" [(ngModel)]="linea.identificadorProducto" [name]="'producto' + indice"><option [ngValue]="null">Seleccione un producto</option><option *ngFor="let producto of productos" [ngValue]="producto.ID_PRODUCTO">{{ producto.NOMBRE }} — Q{{ producto.PRECIO }}</option></select></div>
+      <div class="col-md-3"><label class="form-label">Cantidad</label><input class="form-control" type="number" min="1" step="1" [(ngModel)]="linea.cantidad" [name]="'cantidad' + indice"></div>
+      <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" (click)="quitarLinea(indice)" [disabled]="lineas.length === 1">Quitar</button></div>
+    </div>
+    <button type="button" class="btn btn-outline-primary mt-2" (click)="agregarLinea()">Agregar producto</button>
+  </div><div class="card-footer text-end"><button class="btn btn-primary" [disabled]="guardando">{{ guardando ? 'Guardando...' : 'Guardar pedido' }}</button></div></form>
+</div></div></main>

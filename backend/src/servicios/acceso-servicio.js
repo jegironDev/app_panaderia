@@ -5,14 +5,22 @@ import { crearSesion } from './sesiones-servicio.js';
 
 const formatoFilas = { outFormat: oracledb.OUT_FORMAT_OBJECT };
 
+// Normaliza solo el nombre de acceso; la contraseña nunca se transforma.
+export function normalizarNombreAcceso(nombreUsuario) {
+  return String(nombreUsuario ?? '').trim().toUpperCase();
+}
+
 // Busca información no sensible para validar el acceso de una cuenta.
-async function obtenerUsuarioPorNombre(conexion, nombreUsuario) {
+export async function obtenerUsuarioPorNombre(conexion, nombreUsuario) {
+  const nombreUsuarioNormalizado = normalizarNombreAcceso(nombreUsuario);
+  if (!nombreUsuarioNormalizado) return null;
+
   const resultado = await conexion.execute(
     `SELECT ID_USUARIO, ID_SUCURSAL, USUARIO, PRIMER_NOMBRE, PRIMER_APELLIDO,
             PSWD, ESTADO, BLOQUEADO, INICIOS_FALLIDOS
        FROM USUARIO
-      WHERE USUARIO = :nombreUsuario`,
-    { nombreUsuario },
+      WHERE UPPER(TRIM(USUARIO)) = :nombreUsuarioNormalizado`,
+    { nombreUsuarioNormalizado },
     formatoFilas,
   );
 
