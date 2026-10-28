@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import oracledb from 'oracledb';
 import { requerirAlgunPermiso, requerirSesion } from '../src/intermediarios/autorizacion.js';
 import {
   consultarRecetaPorIdentificador,
@@ -57,10 +58,12 @@ test('lista recetas y obtiene detalle con producto terminado e ingredientes', as
 
 test('crear permite varias recetas activas para un mismo producto terminado', async () => {
   const insertadas = [];
+  const parametrosCabecera = [];
   let siguienteIdentificador = 70;
   const conexion = crearConexionReceta({
     alInsertarReceta(parametros) {
       insertadas.push(parametros);
+      parametrosCabecera.push(parametros);
       return siguienteIdentificador++;
     },
   });
@@ -70,6 +73,53 @@ test('crear permite varias recetas activas para un mismo producto terminado', as
   assert.equal(segunda.ID_RECETA, 71);
   assert.equal(insertadas.length, 2);
   assert.equal(insertadas[0].identificadorProducto, insertadas[1].identificadorProducto);
+  assert.deepEqual(Object.keys(parametrosCabecera[0]).sort(), [
+    'identificadorProducto', 'identificadorReceta', 'nombre', 'unidadesProducidas',
+  ]);
+  assert.equal(Object.hasOwn(parametrosCabecera[0], 'ingredientes'), false);
+  assert.equal(parametrosCabecera[0].identificadorReceta.dir, oracledb.BIND_OUT);
+  assert.equal(parametrosCabecera[0].identificadorReceta.type, oracledb.NUMBER);
+});
+
+test('revierte la creación completa si falla la inserción de un detalle', async () => {
+  let rollback = 0;
+  let commit = 0;
+  const conexion = {
+    async execute(sql, parametros) {
+      if (sql.includes("TIPO = 'PFI'")) return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto }] };
+      if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto }] };
+      if (sql.includes('FROM UNIDAD_MEDIDA')) return { rows: [{ ID_UNIDAD_MEDIDA: parametros.identificadorUnidadMedida }] };
+      if (sql.includes('INSERT INTO RECETA')) return { outBinds: { identificadorReceta: [70] } };
+      if (sql.includes('INSERT INTO DETALLE_RECETA')) throw new Error('Fallo simulado de detalle');
+      throw new Error('Consulta no esperada');
+    },
+    async commit() { commit += 1; },
+    async rollback() { rollback += 1; },
+  };
+  await assert.rejects(() => crearReceta(recetaValida, conexion), /Fallo simulado de detalle/);
+  assert.equal(commit, 0);
+  assert.equal(rollback, 1);
+});
+
+test('POST conserva la conexión prestada hasta consultar, confirmar y devolver la receta', async () => {
+  const eventos = [];
+  const conexion = crearConexionReceta({ eventos });
+  const resultado = await crearReceta(recetaValida, conexion);
+  assert.equal(resultado.ID_RECETA, 7);
+  assert.equal(eventos.includes('CERRAR'), false);
+  assert.ok(eventos.indexOf('INSERTAR_CABECERA') < eventos.indexOf('INSERTAR_DETALLE'));
+  assert.ok(eventos.indexOf('INSERTAR_DETALLE') < eventos.indexOf('CONSULTAR_CABECERA'));
+  assert.ok(eventos.indexOf('CONSULTAR_DETALLE') < eventos.indexOf('COMMIT'));
+});
+
+test('PUT conserva la conexión prestada durante actualización, consulta y confirmación', async () => {
+  const eventos = [];
+  const conexion = crearConexionReceta({ eventos, producciones: 0 });
+  const resultado = await modificarReceta(7, recetaValida, conexion);
+  assert.equal(resultado.ID_RECETA, 7);
+  assert.equal(eventos.includes('CERRAR'), false);
+  assert.ok(eventos.indexOf('ACTUALIZAR_CABECERA') < eventos.indexOf('CONSULTAR_CABECERA'));
+  assert.ok(eventos.indexOf('CONSULTAR_DETALLE') < eventos.indexOf('COMMIT'));
 });
 
 test('crear rechaza producto final no válido, ingredientes no MAT/INS y unidades inactivas', async () => {
@@ -139,23 +189,33 @@ test('las rutas de recetas exigen sesión y el permiso correcto sin usar TIPO', 
 
 function crearConexionReceta(opciones = {}) {
   let estado = 'A';
+  let cerrada = false;
   return {
     async execute(sql, parametros) {
+      if (cerrada) {
+        const error = new Error('NJS-003: invalid or closed connection');
+        error.code = 'NJS-003';
+        throw error;
+      }
       opciones.operaciones?.push(sql);
       if (sql.includes('PRODUCCIONES')) return { rows: [{ ID_RECETA: parametros.identificadorReceta, PRODUCCIONES: opciones.producciones || 0 }] };
       if (sql.includes("TIPO = 'PFI'")) return { rows: opciones.tipoFallo === 'productoFinal' ? [] : [{ ID_PRODUCTO: parametros.identificadorProducto }] };
       if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: opciones.tipoFallo === 'ingrediente' ? [] : [{ ID_PRODUCTO: parametros.identificadorProducto }] };
       if (sql.includes('FROM UNIDAD_MEDIDA')) return { rows: opciones.tipoFallo === 'unidad' ? [] : [{ ID_UNIDAD_MEDIDA: parametros.identificadorUnidadMedida }] };
-      if (sql.includes('INSERT INTO RECETA')) return { outBinds: { identificadorReceta: [opciones.alInsertarReceta?.(parametros) || 7] } };
-      if (sql.includes('INSERT INTO DETALLE_RECETA') || sql.startsWith('DELETE FROM DETALLE_RECETA') || sql.startsWith('UPDATE RECETA\n')) return {};
+      if (sql.includes('INSERT INTO RECETA')) { opciones.eventos?.push('INSERTAR_CABECERA'); return { outBinds: { identificadorReceta: [opciones.alInsertarReceta?.(parametros) || 7] } }; }
+      if (sql.includes('INSERT INTO DETALLE_RECETA')) { opciones.eventos?.push('INSERTAR_DETALLE'); return {}; }
+      if (sql.startsWith('DELETE FROM DETALLE_RECETA')) return {};
+      if (sql.startsWith('UPDATE RECETA\n')) { opciones.eventos?.push('ACTUALIZAR_CABECERA'); return {}; }
       if (sql.startsWith('UPDATE RECETA SET ESTADO')) { estado = 'I'; return { rowsAffected: 1 }; }
       if (sql.includes('FROM RECETA r') && !sql.includes('PRODUCCIONES')) {
+        opciones.eventos?.push('CONSULTAR_CABECERA');
         return { rows: [{ ID_RECETA: parametros.identificadorReceta, NOMBRE: 'Receta', UNIDADES_PRODUCIDAS: 100, ESTADO: estado, ID_PRODUCTO: 10, NOMBRE_PRODUCTO: 'Pan', TIPO_PRODUCTO: 'PFI' }] };
       }
-      if (sql.includes('FROM DETALLE_RECETA')) return { rows: [] };
+      if (sql.includes('FROM DETALLE_RECETA')) { opciones.eventos?.push('CONSULTAR_DETALLE'); return { rows: [] }; }
       throw new Error('Consulta no esperada');
     },
-    async commit() {},
+    async commit() { opciones.eventos?.push('COMMIT'); },
     async rollback() {},
+    async close() { cerrada = true; opciones.eventos?.push('CERRAR'); },
   };
 }

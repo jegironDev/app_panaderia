@@ -29,30 +29,7 @@ export async function consultarRecetas(conexionExterna = null) {
 export async function consultarRecetaPorIdentificador(identificadorReceta, conexionExterna = null) {
   const conexion = conexionExterna || await obtenerConexion();
   try {
-    const cabecera = await conexion.execute(
-      `SELECT r.ID_RECETA, r.NOMBRE, r.UNIDADES_PRODUCIDAS, r.ESTADO,
-              p.ID_PRODUCTO, p.NOMBRE AS NOMBRE_PRODUCTO, p.TIPO AS TIPO_PRODUCTO
-         FROM RECETA r
-         JOIN PRODUCTO p ON p.ID_PRODUCTO = r.ID_PRODUCTO
-        WHERE r.ID_RECETA = :identificadorReceta`,
-      { identificadorReceta },
-      formatoFilas,
-    );
-    if (!cabecera.rows.length) return null;
-
-    const ingredientes = await conexion.execute(
-      `SELECT dr.ID_DETALLE_RECETA, dr.ID_PRODUCTO, p.NOMBRE AS NOMBRE_PRODUCTO,
-              p.TIPO AS TIPO_PRODUCTO, dr.ID_UNIDAD_MEDIDA,
-              um.NOMBRE AS NOMBRE_UNIDAD_MEDIDA, um.ABREVIATURA, dr.CANTIDAD
-         FROM DETALLE_RECETA dr
-         JOIN PRODUCTO p ON p.ID_PRODUCTO = dr.ID_PRODUCTO
-         JOIN UNIDAD_MEDIDA um ON um.ID_UNIDAD_MEDIDA = dr.ID_UNIDAD_MEDIDA
-        WHERE dr.ID_RECETA = :identificadorReceta
-        ORDER BY dr.ID_DETALLE_RECETA`,
-      { identificadorReceta },
-      formatoFilas,
-    );
-    return { ...cabecera.rows[0], INGREDIENTES: ingredientes.rows };
+    return await obtenerRecetaConConexion(conexion, identificadorReceta);
   } finally {
     if (!conexionExterna) await conexion.close();
   }
@@ -97,14 +74,17 @@ export async function crearReceta(datosRecibidos, conexionExterna = null) {
        VALUES (:identificadorProducto, :nombre, :unidadesProducidas, 'A')
        RETURNING ID_RECETA INTO :identificadorReceta`,
       {
-        ...datos,
+        identificadorProducto: datos.identificadorProducto,
+        nombre: datos.nombre,
+        unidadesProducidas: datos.unidadesProducidas,
         identificadorReceta: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
       },
     );
     const identificadorReceta = cabecera.outBinds.identificadorReceta[0];
     await guardarIngredientes(conexion, identificadorReceta, datos.ingredientes);
+    const receta = await obtenerRecetaConConexion(conexion, identificadorReceta);
     await conexion.commit();
-    return consultarRecetaPorIdentificador(identificadorReceta, conexion);
+    return receta;
   } catch (error) {
     await conexion.rollback();
     if (error.errorNum === 1) error.codigoEstado = 409;
@@ -131,8 +111,9 @@ export async function modificarReceta(identificadorReceta, datosRecibidos, conex
     );
     await conexion.execute('DELETE FROM DETALLE_RECETA WHERE ID_RECETA = :identificadorReceta', { identificadorReceta });
     await guardarIngredientes(conexion, identificadorReceta, datos.ingredientes);
+    const receta = await obtenerRecetaConConexion(conexion, identificadorReceta);
     await conexion.commit();
-    return consultarRecetaPorIdentificador(identificadorReceta, conexion);
+    return receta;
   } catch (error) {
     await conexion.rollback();
     throw error;
@@ -151,8 +132,9 @@ export async function desactivarReceta(identificadorReceta, conexionExterna = nu
       { autoCommit: false },
     );
     if (!resultado.rowsAffected) throw crearError('Receta no encontrada', 404, true);
+    const receta = await obtenerRecetaConConexion(conexion, identificadorReceta);
     await conexion.commit();
-    return consultarRecetaPorIdentificador(identificadorReceta, conexion);
+    return receta;
   } catch (error) {
     await conexion.rollback();
     throw error;
@@ -175,6 +157,34 @@ async function verificarRecetaEditable(conexion, identificadorReceta) {
   if (receta.rows[0].PRODUCCIONES > 0) {
     throw crearError('No se puede editar una receta con producciones asociadas', 409, true);
   }
+}
+
+// Esta función no administra el ciclo de vida de la conexión recibida.
+async function obtenerRecetaConConexion(conexion, identificadorReceta) {
+  const cabecera = await conexion.execute(
+    `SELECT r.ID_RECETA, r.NOMBRE, r.UNIDADES_PRODUCIDAS, r.ESTADO,
+            p.ID_PRODUCTO, p.NOMBRE AS NOMBRE_PRODUCTO, p.TIPO AS TIPO_PRODUCTO
+       FROM RECETA r
+       JOIN PRODUCTO p ON p.ID_PRODUCTO = r.ID_PRODUCTO
+      WHERE r.ID_RECETA = :identificadorReceta`,
+    { identificadorReceta },
+    formatoFilas,
+  );
+  if (!cabecera.rows.length) return null;
+
+  const ingredientes = await conexion.execute(
+    `SELECT dr.ID_DETALLE_RECETA, dr.ID_PRODUCTO, p.NOMBRE AS NOMBRE_PRODUCTO,
+            p.TIPO AS TIPO_PRODUCTO, dr.ID_UNIDAD_MEDIDA,
+            um.NOMBRE AS NOMBRE_UNIDAD_MEDIDA, um.ABREVIATURA, dr.CANTIDAD
+       FROM DETALLE_RECETA dr
+       JOIN PRODUCTO p ON p.ID_PRODUCTO = dr.ID_PRODUCTO
+       JOIN UNIDAD_MEDIDA um ON um.ID_UNIDAD_MEDIDA = dr.ID_UNIDAD_MEDIDA
+      WHERE dr.ID_RECETA = :identificadorReceta
+      ORDER BY dr.ID_DETALLE_RECETA`,
+    { identificadorReceta },
+    formatoFilas,
+  );
+  return { ...cabecera.rows[0], INGREDIENTES: ingredientes.rows };
 }
 
 async function verificarProductoTerminadoActivo(conexion, identificadorProducto) {
