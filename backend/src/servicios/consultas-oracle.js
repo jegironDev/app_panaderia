@@ -25,3 +25,21 @@ export async function consultarProcedimiento(nombreProcedimiento) {
     }
   }
 }
+
+// Consulta un tipo controlado de producto sin alterar el catálogo general existente.
+export async function consultarProductosPorTipo(tipo) {
+  const conexion = await obtenerConexion();
+  try {
+    const resultado = await conexion.execute(
+      `SELECT ID_PRODUCTO, NOMBRE, TIPO, PRECIO
+         FROM PRODUCTO
+        WHERE TIPO = :tipo AND ESTADO = 'A'
+        ORDER BY NOMBRE`,
+      { tipo },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    return resultado.rows;
+  } finally {
+    await conexion.close();
+  }
+}

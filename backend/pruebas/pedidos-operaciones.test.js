@@ -57,13 +57,27 @@ test('el filtro de solicitud de cancelación se aplica dentro de SQL para la suc
   );
 });
 
+test('la solicitud de cancelación exige una sucursal en la identidad autenticada', () => {
+  assert.throws(
+    () => obtenerFiltroSucursal({ identificadorSucursal: null }, 'p.ID_SUCURSAL', false),
+    error => error.codigoEstado === 403,
+  );
+  assert.deepEqual(obtenerFiltroSucursal({ identificadorSucursal: 1 }, 'p.ID_SUCURSAL', false), {
+    condicion: 'p.ID_SUCURSAL = :identificadorSucursalAutenticada',
+    parametros: { identificadorSucursalAutenticada: 1 },
+  });
+});
+
 test('revierte la transacción si falla la inserción de un detalle', async () => {
   let rollback = 0;
   let commit = 0;
   const conexion = {
     async execute(sql) {
-      if (sql.includes('FROM JORNADA') || sql.includes('FROM ESTADO_PEDIDO') || sql.includes('FROM PRODUCTO')) {
-        return { rows: [{ ID_JORNADA: 1, ID_ESTADO_PEDIDO: 2, ID_PRODUCTO: 3 }] };
+      if (sql.includes('FROM JORNADA') || sql.includes('FROM ESTADO_PEDIDO')) {
+        return { rows: [{ ID_JORNADA: 1, ID_ESTADO_PEDIDO: 2 }] };
+      }
+      if (sql.includes('FROM PRODUCTO')) {
+        return { rows: [{ ID_PRODUCTO: 3, PRECIO: 2 }] };
       }
       if (sql.includes('INSERT INTO PEDIDO')) return { outBinds: { identificadorPedido: [50] } };
       if (sql.includes('INSERT INTO DETALLE_PEDIDO')) throw new Error('Fallo simulado del detalle');
@@ -78,4 +92,45 @@ test('revierte la transacción si falla la inserción de un detalle', async () =
   );
   assert.equal(commit, 0);
   assert.equal(rollback, 1);
+});
+
+test('calcula importes históricos desde productos PFI sin aceptar importes del cliente', async () => {
+  const insercionesDetalle = [];
+  let cabecera;
+  const conexion = {
+    async execute(sql, parametros) {
+      if (sql.includes('FROM JORNADA')) return { rows: [{ ID_JORNADA: 1 }] };
+      if (sql.includes('FROM ESTADO_PEDIDO')) return { rows: [{ ID_ESTADO_PEDIDO: 2 }] };
+      if (sql.includes('FROM PRODUCTO')) {
+        return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto, PRECIO: parametros.identificadorProducto === 4 ? 2 : 3.5 }] };
+      }
+      if (sql.includes('INSERT INTO PEDIDO')) { cabecera = parametros; return { outBinds: { identificadorPedido: [50] } }; }
+      if (sql.includes('INSERT INTO DETALLE_PEDIDO')) { insercionesDetalle.push(parametros); return {}; }
+      if (sql.includes('INSERT INTO BITACORA_PEDIDOS')) return {};
+      throw new Error('Consulta no esperada');
+    },
+    async commit() {}, async rollback() {},
+  };
+  const creado = await crearPedido(pedidoValido, { identificadorUsuario: 7, identificadorSucursal: 1 }, conexion);
+  assert.equal(cabecera.total, 105);
+  assert.deepEqual(insercionesDetalle.map(detalle => [detalle.precioUnitario, detalle.subtotal]), [[2, 70], [3.5, 35]]);
+  assert.equal(creado.TOTAL, 105);
+  assert.throws(() => validarDatosNuevoPedido({ ...pedidoValido, total: 1 }), error => error.codigoEstado === 400);
+  assert.throws(() => validarDatosNuevoPedido({ ...pedidoValido, detalles: [{ identificadorProducto: 4, cantidad: 1, precioUnitario: 1 }] }), error => error.codigoEstado === 400);
+});
+
+test('rechaza productos que no son finales o no están activos', async () => {
+  const conexion = {
+    async execute(sql) {
+      if (sql.includes('FROM JORNADA')) return { rows: [{ ID_JORNADA: 1 }] };
+      if (sql.includes('FROM ESTADO_PEDIDO')) return { rows: [{ ID_ESTADO_PEDIDO: 2 }] };
+      if (sql.includes('FROM PRODUCTO')) return { rows: [] };
+      throw new Error('No debe insertar pedidos');
+    },
+    async commit() {}, async rollback() {},
+  };
+  await assert.rejects(
+    () => crearPedido(pedidoValido, { identificadorUsuario: 7, identificadorSucursal: 1 }, conexion),
+    error => error.codigoEstado === 404,
+  );
 });

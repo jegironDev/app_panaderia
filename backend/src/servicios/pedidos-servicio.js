@@ -19,7 +19,7 @@ export async function consultarPedidos(identidad) {
       `SELECT p.ID_PEDIDO, p.ID_SUCURSAL, s.NOMBRE AS SUCURSAL,
               p.ID_JORNADA, j.NOMBRE AS JORNADA,
               p.ID_ESTADO_PEDIDO, e.NOMBRE AS ESTADO,
-              p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES,
+              p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES, p.TOTAL,
               COUNT(dp.ID_DETALLE_PEDIDO) AS LINEAS,
               NVL(SUM(dp.CANTIDAD), 0) AS UNIDADES_PEDIDAS
          FROM PEDIDO p
@@ -29,7 +29,7 @@ export async function consultarPedidos(identidad) {
          LEFT JOIN DETALLE_PEDIDO dp ON dp.ID_PEDIDO = p.ID_PEDIDO
         WHERE 1 = 1 ${condicionSucursal}
         GROUP BY p.ID_PEDIDO, p.ID_SUCURSAL, s.NOMBRE, p.ID_JORNADA, j.NOMBRE,
-                 p.ID_ESTADO_PEDIDO, e.NOMBRE, p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES
+                 p.ID_ESTADO_PEDIDO, e.NOMBRE, p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES, p.TOTAL
         ORDER BY p.FECHA_PEDIDO DESC, p.ID_PEDIDO DESC`,
       filtro.parametros,
       formatoFilas,
@@ -49,7 +49,7 @@ export async function consultarPedidoPorIdentificador(identificadorPedido, ident
       `SELECT p.ID_PEDIDO, p.ID_SUCURSAL, s.NOMBRE AS SUCURSAL,
               p.ID_USUARIO, p.ID_RUTA, p.ID_JORNADA, j.NOMBRE AS JORNADA,
               p.ID_ESTADO_PEDIDO, e.NOMBRE AS ESTADO,
-              p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES
+              p.FECHA_PEDIDO, p.FECHA_DESPACHO, p.OBSERVACIONES, p.TOTAL
          FROM PEDIDO p
          JOIN SUCURSAL s ON s.ID_SUCURSAL = p.ID_SUCURSAL
          JOIN JORNADA j ON j.ID_JORNADA = p.ID_JORNADA
@@ -62,7 +62,7 @@ export async function consultarPedidoPorIdentificador(identificadorPedido, ident
 
     const detalles = await conexion.execute(
       `SELECT dp.ID_DETALLE_PEDIDO, dp.ID_PRODUCTO, pr.NOMBRE AS NOMBRE_PRODUCTO,
-              pr.TIPO AS TIPO_PRODUCTO, pr.PRECIO, dp.CANTIDAD
+              pr.TIPO AS TIPO_PRODUCTO, dp.PRECIO_UNITARIO, dp.SUBTOTAL, dp.CANTIDAD
          FROM DETALLE_PEDIDO dp
          JOIN PEDIDO p ON p.ID_PEDIDO = dp.ID_PEDIDO
          JOIN PRODUCTO pr ON pr.ID_PRODUCTO = dp.ID_PRODUCTO
@@ -104,7 +104,8 @@ async function consultarCatalogoActivo(tabla, columnaIdentificador) {
 
 // Valida el contrato sin aceptar IDs de sucursal o usuario provenientes del cliente.
 export function validarDatosNuevoPedido(datos) {
-  if (Object.hasOwn(datos || {}, 'identificadorSucursal') || Object.hasOwn(datos || {}, 'identificadorUsuario')) {
+  if (Object.hasOwn(datos || {}, 'identificadorSucursal') || Object.hasOwn(datos || {}, 'identificadorUsuario')
+    || Object.hasOwn(datos || {}, 'total')) {
     throw crearError('La sucursal y el usuario se obtienen de la sesión autenticada', 400);
   }
   const identificadorJornada = Number(datos?.identificadorJornada);
@@ -126,6 +127,9 @@ export function validarDatosNuevoPedido(datos) {
       throw crearError('Cada detalle requiere producto y cantidad entera positiva', 400);
     }
     if (productos.has(identificadorProducto)) throw crearError('No se permiten productos repetidos', 400);
+    if (Object.hasOwn(detalle || {}, 'precioUnitario') || Object.hasOwn(detalle || {}, 'subtotal')) {
+      throw crearError('Los importes son calculados por el servidor', 400);
+    }
     productos.add(identificadorProducto);
     return { identificadorProducto, cantidad };
   });
@@ -147,13 +151,19 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
   try {
     await obtenerJornadaActiva(conexion, datos.identificadorJornada);
     const identificadorEstadoPendiente = await obtenerEstadoOficialActivo(conexion, 'PENDIENTE');
-    for (const detalle of datos.detalles) await obtenerProductoActivo(conexion, detalle.identificadorProducto);
+    const detallesConPrecio = [];
+    for (const detalle of datos.detalles) {
+      const producto = await obtenerProductoTerminadoActivo(conexion, detalle.identificadorProducto);
+      const precioUnitario = redondearImporte(producto.PRECIO);
+      detallesConPrecio.push({ ...detalle, precioUnitario, subtotal: redondearImporte(detalle.cantidad * precioUnitario) });
+    }
+    const total = redondearImporte(detallesConPrecio.reduce((acumulado, detalle) => acumulado + detalle.subtotal, 0));
 
     const cabecera = await conexion.execute(
       `INSERT INTO PEDIDO
-        (ID_SUCURSAL, ID_USUARIO, ID_JORNADA, ID_ESTADO_PEDIDO, OBSERVACIONES)
+        (ID_SUCURSAL, ID_USUARIO, ID_JORNADA, ID_ESTADO_PEDIDO, OBSERVACIONES, TOTAL)
        VALUES (:identificadorSucursal, :identificadorUsuario, :identificadorJornada,
-               :identificadorEstadoPedido, :observaciones)
+               :identificadorEstadoPedido, :observaciones, :total)
        RETURNING ID_PEDIDO INTO :identificadorPedido`,
       {
         identificadorSucursal,
@@ -161,14 +171,15 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
         identificadorJornada: datos.identificadorJornada,
         identificadorEstadoPedido: identificadorEstadoPendiente,
         observaciones: datos.observaciones,
+        total,
         identificadorPedido: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
       },
     );
     const identificadorPedido = cabecera.outBinds.identificadorPedido[0];
-    for (const detalle of datos.detalles) {
+    for (const detalle of detallesConPrecio) {
       await conexion.execute(
-        `INSERT INTO DETALLE_PEDIDO (ID_PEDIDO, ID_PRODUCTO, CANTIDAD)
-         VALUES (:identificadorPedido, :identificadorProducto, :cantidad)`,
+        `INSERT INTO DETALLE_PEDIDO (ID_PEDIDO, ID_PRODUCTO, CANTIDAD, PRECIO_UNITARIO, SUBTOTAL)
+         VALUES (:identificadorPedido, :identificadorProducto, :cantidad, :precioUnitario, :subtotal)`,
         { identificadorPedido, ...detalle },
       );
     }
@@ -179,7 +190,7 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
     );
     await conexion.commit();
     if (conexionExterna) {
-      return { ID_PEDIDO: identificadorPedido, DETALLES: datos.detalles };
+      return { ID_PEDIDO: identificadorPedido, TOTAL: total, DETALLES: detallesConPrecio };
     }
     return consultarPedidoPorIdentificador(identificadorPedido, identidad);
   } catch (error) {
@@ -274,13 +285,17 @@ async function obtenerJornadaActiva(conexion, identificadorJornada) {
   if (!resultado.rows.length) throw crearError('Jornada no encontrada o inactiva', 404);
 }
 
-async function obtenerProductoActivo(conexion, identificadorProducto) {
+async function obtenerProductoTerminadoActivo(conexion, identificadorProducto) {
   const resultado = await conexion.execute(
-    `SELECT ID_PRODUCTO FROM PRODUCTO WHERE ID_PRODUCTO = :identificadorProducto AND ESTADO = 'A'`,
+    `SELECT ID_PRODUCTO, PRECIO FROM PRODUCTO
+      WHERE ID_PRODUCTO = :identificadorProducto AND TIPO = 'PFI' AND ESTADO = 'A'`,
     { identificadorProducto }, formatoFilas,
   );
-  if (!resultado.rows.length) throw crearError('Producto no encontrado o inactivo', 404);
+  if (!resultado.rows.length) throw crearError('Producto final no encontrado o inactivo', 404);
+  return resultado.rows[0];
 }
+
+function redondearImporte(importe) { return Number(Number(importe).toFixed(2)); }
 
 async function obtenerEstadoOficialActivo(conexion, nombre) {
   const resultado = await conexion.execute(

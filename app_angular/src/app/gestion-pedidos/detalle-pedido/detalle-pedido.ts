@@ -2,8 +2,24 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApiService, DetallePedido as DatosPedido } from '../../api.service';
+import { ApiService, DetallePedido as DatosPedido, obtenerMensajeErrorHttp } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
+
+export function puedeAutorizarEstado(estado: string | undefined): boolean { return estado === 'PENDIENTE'; }
+
+export function puedeAutorizarPedido(estado: string | undefined, tienePermisoAutorizacion: boolean): boolean {
+  return puedeAutorizarEstado(estado) && tienePermisoAutorizacion;
+}
+
+export function puedeSolicitarCancelacionPedido(
+  identificadorSucursalSesion: number | null,
+  identificadorSucursalPedido: number | undefined,
+  tienePermisoSolicitud: boolean,
+): boolean {
+  return tienePermisoSolicitud
+    && identificadorSucursalSesion !== null
+    && identificadorSucursalSesion === identificadorSucursalPedido;
+}
 
 @Component({
   standalone: true,
@@ -15,7 +31,6 @@ export class DetallePedido implements OnInit {
   pedido: DatosPedido | null = null;
   cargando = true;
   procesando = false;
-  confirmarAutorizacion = false;
   motivo = '';
   error = '';
   exito = '';
@@ -36,10 +51,22 @@ export class DetallePedido implements OnInit {
     });
   }
 
+  puedeAutorizar(): boolean {
+    return puedeAutorizarPedido(this.pedido?.ESTADO, this.api.tienePermiso('AUTORIZAR_PEDIDOS'));
+  }
+
+  puedeSolicitarCancelacion(): boolean {
+    return puedeSolicitarCancelacionPedido(
+      this.api.obtenerIdentificadorSucursalSesion(),
+      this.pedido?.ID_SUCURSAL,
+      this.api.tienePermiso('SOLICITAR_CANCELACION_PEDIDOS'),
+    );
+  }
+
   autorizar() {
     this.procesando = true; this.error = ''; this.exito = ''; this.cdr.markForCheck();
     this.api.autorizarPedido(this.identificadorPedido).subscribe({
-      next: pedido => { this.pedido = pedido; this.procesando = false; this.confirmarAutorizacion = false; this.exito = 'Pedido autorizado correctamente.'; this.cdr.markForCheck(); },
+      next: pedido => { this.pedido = pedido; this.procesando = false; this.exito = 'Pedido autorizado correctamente.'; this.cdr.markForCheck(); },
       error: error => { this.procesando = false; this.mostrarError(error, 'No fue posible autorizar el pedido.'); },
     });
   }
@@ -56,7 +83,7 @@ export class DetallePedido implements OnInit {
   private mostrarError(error: any, mensaje: string) {
     this.cargando = false;
     if (error.status === 401) { sessionStorage.removeItem('token'); this.router.navigate(['/ingresar']); return; }
-    this.error = error.error?.error || mensaje;
+    this.error = obtenerMensajeErrorHttp(error, mensaje);
     this.cdr.markForCheck();
   }
 }

@@ -6,9 +6,11 @@ import { EditarUsuario } from './gestion-usuarios/editar-usuario/editar-usuario'
 import { Pedidos } from './gestion-pedidos/pedidos/pedidos';
 import { CrearPedido } from './gestion-pedidos/crear-pedido/crear-pedido';
 import { DetallePedido } from './gestion-pedidos/detalle-pedido/detalle-pedido';
+import { Inicio } from './inicio/inicio';
 
 export const routes: Routes = [
   { path: 'ingresar', component: InicioSesion },
+  { path: 'inicio', component: Inicio },
   { path: 'usuarios', component: Usuarios },
   { path: 'usuarios/nuevo', component: CrearUsuario },
   { path: 'usuarios/:id/editar', component: EditarUsuario },

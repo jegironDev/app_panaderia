@@ -1,9 +1,9 @@
 <nav class="navbar navbar-light bg-white shadow-sm mb-4">
   <div class="container">
-    <a class="navbar-brand fw-bold" routerLink="/usuarios">Panadería San Carlos</a>
+    <a class="navbar-brand fw-bold" routerLink="/inicio">Panadería San Carlos</a>
     <div class="d-flex">
-      <a class="nav-link" routerLink="/usuarios">Usuarios</a>
-      <a class="nav-link ms-3" routerLink="/pedidos">Pedidos</a>
+      <a *ngIf="mostrarUsuarios()" class="nav-link" routerLink="/usuarios">Usuarios</a>
+      <a *ngIf="mostrarPedidos()" class="nav-link ms-3" routerLink="/pedidos">Pedidos</a>
       <button class="btn btn-outline-danger btn-sm ms-3" (click)="cerrarSesion()">Cerrar sesión</button>
     </div>
   </div>
