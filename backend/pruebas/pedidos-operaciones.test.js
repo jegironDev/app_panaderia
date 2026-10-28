@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { obtenerFiltroSucursal } from '../src/servicios/aislamiento-sucursales-servicio.js';
-import { crearPedido, validarDatosNuevoPedido, validarMotivoCancelacion } from '../src/servicios/pedidos-servicio.js';
+import { autorizarPedido, crearPedido, esEstadoAprobadoParaProduccion, validarDatosNuevoPedido, validarMotivoCancelacion } from '../src/servicios/pedidos-servicio.js';
 
 const pedidoValido = {
   identificadorJornada: 1,
@@ -66,6 +66,38 @@ test('la solicitud de cancelación exige una sucursal en la identidad autenticad
     condicion: 'p.ID_SUCURSAL = :identificadorSucursalAutenticada',
     parametros: { identificadorSucursalAutenticada: 1 },
   });
+});
+
+test('reconoce ambos nombres del estado aprobado durante la transición', () => {
+  assert.equal(esEstadoAprobadoParaProduccion('AUTORIZADO'), true);
+  assert.equal(esEstadoAprobadoParaProduccion('APROBADO_PARA_PRODUCCION'), true);
+  assert.equal(esEstadoAprobadoParaProduccion('PENDIENTE'), false);
+});
+
+test('bloquea la autorización directa sin modificar el estado mientras falta la planificación', async () => {
+  let consultas = 0;
+  const conexion = {
+    async execute() {
+      consultas += 1;
+      return { rows: [{ ID_PEDIDO: 50, ESTADO: 'PENDIENTE' }] };
+    },
+  };
+  await assert.rejects(
+    () => autorizarPedido(50, { identificadorUsuario: 1 }, conexion),
+    error => error.codigoEstado === 409
+      && error.mensajeCliente === 'La planificación de producción es necesaria antes de aprobar el pedido.',
+  );
+  assert.equal(consultas, 1);
+});
+
+test('bloquea un pedido ya aprobado bajo cualquiera de los nombres transitorios', async () => {
+  for (const estado of ['AUTORIZADO', 'APROBADO_PARA_PRODUCCION']) {
+    const conexion = { async execute() { return { rows: [{ ID_PEDIDO: 50, ESTADO: estado }] }; } };
+    await assert.rejects(
+      () => autorizarPedido(50, { identificadorUsuario: 1 }, conexion),
+      error => error.codigoEstado === 409 && error.mensajeCliente === 'El pedido ya fue aprobado para producción.',
+    );
+  }
 });
 
 test('revierte la transacción si falla la inserción de un detalle', async () => {

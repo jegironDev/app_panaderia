@@ -2,6 +2,7 @@ import oracledb from 'oracledb';
 import { obtenerConexion } from '../configuracion/base-datos.js';
 import { obtenerFiltroSucursal } from './aislamiento-sucursales-servicio.js';
 import { obtenerSucursalAutenticada } from './aislamiento-sucursales-servicio.js';
+import { bloquearControlCola, estaColaPedidosHabilitada, obtenerNuevaPosicionCola } from './cola-pedidos-servicio.js';
 
 const formatoFilas = { outFormat: oracledb.OUT_FORMAT_OBJECT };
 
@@ -149,6 +150,10 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
   const identificadorSucursal = obtenerSucursalAutenticada(identidad);
   const conexion = conexionExterna || await obtenerConexion();
   try {
+    const colaHabilitada = estaColaPedidosHabilitada();
+    const posicionCola = colaHabilitada
+      ? await asignarPosicionInicialCola(conexion)
+      : null;
     await obtenerJornadaActiva(conexion, datos.identificadorJornada);
     const identificadorEstadoPendiente = await obtenerEstadoOficialActivo(conexion, 'PENDIENTE');
     const detallesConPrecio = [];
@@ -159,22 +164,29 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
     }
     const total = redondearImporte(detallesConPrecio.reduce((acumulado, detalle) => acumulado + detalle.subtotal, 0));
 
-    const cabecera = await conexion.execute(
-      `INSERT INTO PEDIDO
-        (ID_SUCURSAL, ID_USUARIO, ID_JORNADA, ID_ESTADO_PEDIDO, OBSERVACIONES, TOTAL)
-       VALUES (:identificadorSucursal, :identificadorUsuario, :identificadorJornada,
-               :identificadorEstadoPedido, :observaciones, :total)
-       RETURNING ID_PEDIDO INTO :identificadorPedido`,
-      {
-        identificadorSucursal,
-        identificadorUsuario: identidad.identificadorUsuario,
-        identificadorJornada: datos.identificadorJornada,
-        identificadorEstadoPedido: identificadorEstadoPendiente,
-        observaciones: datos.observaciones,
-        total,
-        identificadorPedido: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
-      },
-    );
+    const parametrosCabecera = {
+      identificadorSucursal,
+      identificadorUsuario: identidad.identificadorUsuario,
+      identificadorJornada: datos.identificadorJornada,
+      identificadorEstadoPedido: identificadorEstadoPendiente,
+      observaciones: datos.observaciones,
+      total,
+      identificadorPedido: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER },
+    };
+    // La columna nueva solo se referencia tras habilitar explícitamente la migración 17.
+    const sentenciaCabecera = colaHabilitada
+      ? `INSERT INTO PEDIDO
+           (ID_SUCURSAL, ID_USUARIO, ID_JORNADA, ID_ESTADO_PEDIDO, OBSERVACIONES, TOTAL, POSICION_COLA)
+         VALUES (:identificadorSucursal, :identificadorUsuario, :identificadorJornada,
+                 :identificadorEstadoPedido, :observaciones, :total, :posicionCola)
+         RETURNING ID_PEDIDO INTO :identificadorPedido`
+      : `INSERT INTO PEDIDO
+           (ID_SUCURSAL, ID_USUARIO, ID_JORNADA, ID_ESTADO_PEDIDO, OBSERVACIONES, TOTAL)
+         VALUES (:identificadorSucursal, :identificadorUsuario, :identificadorJornada,
+                 :identificadorEstadoPedido, :observaciones, :total)
+         RETURNING ID_PEDIDO INTO :identificadorPedido`;
+    if (colaHabilitada) parametrosCabecera.posicionCola = posicionCola;
+    const cabecera = await conexion.execute(sentenciaCabecera, parametrosCabecera);
     const identificadorPedido = cabecera.outBinds.identificadorPedido[0];
     for (const detalle of detallesConPrecio) {
       await conexion.execute(
@@ -201,8 +213,19 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
   }
 }
 
-export async function autorizarPedido(identificadorPedido, identidad) {
-  const conexion = await obtenerConexion();
+async function asignarPosicionInicialCola(conexion) {
+  await bloquearControlCola(conexion);
+  return obtenerNuevaPosicionCola(conexion);
+}
+
+// Durante la transición de estados, ambas denominaciones representan pedidos ya aprobados.
+export function esEstadoAprobadoParaProduccion(estado) {
+  return estado === 'AUTORIZADO' || estado === 'APROBADO_PARA_PRODUCCION';
+}
+
+// La autorización simple queda suspendida hasta registrar el plan, reservas y producción en una transacción.
+export async function autorizarPedido(identificadorPedido, identidad, conexionExterna = null) {
+  const conexion = conexionExterna || await obtenerConexion();
   try {
     const pedido = await conexion.execute(
       `SELECT p.ID_PEDIDO, p.ID_ESTADO_PEDIDO, e.NOMBRE AS ESTADO
@@ -211,28 +234,13 @@ export async function autorizarPedido(identificadorPedido, identidad) {
         FOR UPDATE`,
       { identificadorPedido }, formatoFilas,
     );
-    if (!pedido.rows.length) throw crearError('Pedido no encontrado', 404);
-    if (pedido.rows[0].ESTADO !== 'PENDIENTE') throw crearError('El pedido no está pendiente de autorización', 409);
-
-    const identificadorAutorizado = await obtenerEstadoOficialActivo(conexion, 'AUTORIZADO');
-    const actualizado = await conexion.execute(
-      `UPDATE PEDIDO SET ID_ESTADO_PEDIDO = :identificadorAutorizado
-        WHERE ID_PEDIDO = :identificadorPedido AND ID_ESTADO_PEDIDO = :identificadorPendiente`,
-      { identificadorAutorizado, identificadorPedido, identificadorPendiente: pedido.rows[0].ID_ESTADO_PEDIDO },
-    );
-    if (!actualizado.rowsAffected) throw crearError('El pedido cambió de estado durante la autorización', 409);
-    await conexion.execute(
-      `INSERT INTO BITACORA_PEDIDOS (ID_PEDIDO, ID_USUARIO, ACCION, COMENTARIO)
-       VALUES (:identificadorPedido, :identificadorUsuario, 'AUTORIZADO', 'Pedido autorizado')`,
-      { identificadorPedido, identificadorUsuario: identidad.identificadorUsuario },
-    );
-    await conexion.commit();
-    return consultarPedidoPorIdentificador(identificadorPedido, identidad);
-  } catch (error) {
-    await conexion.rollback();
-    throw error;
+    if (!pedido.rows.length) throw crearError('Pedido no encontrado', 404, true);
+    if (esEstadoAprobadoParaProduccion(pedido.rows[0].ESTADO)) {
+      throw crearError('El pedido ya fue aprobado para producción.', 409, true);
+    }
+    throw crearError('La planificación de producción es necesaria antes de aprobar el pedido.', 409, true);
   } finally {
-    await conexion.close();
+    if (!conexionExterna) await conexion.close();
   }
 }
 
@@ -306,8 +314,9 @@ async function obtenerEstadoOficialActivo(conexion, nombre) {
   return resultado.rows[0].ID_ESTADO_PEDIDO;
 }
 
-function crearError(mensaje, codigoEstado) {
+function crearError(mensaje, codigoEstado, exponerAlCliente = false) {
   const error = new Error(mensaje);
   error.codigoEstado = codigoEstado;
+  if (exponerAlCliente) error.mensajeCliente = mensaje;
   return error;
 }

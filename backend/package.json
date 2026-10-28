@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "test:api": "node --test --test-concurrency=1 pruebas/autenticacion.test.js pruebas/nombres-usuario.test.js pruebas/aislamiento-sucursales.test.js pruebas/sucursales-servicio.test.js pruebas/pedidos-operaciones.test.js",
+    "test:api": "node --test --test-concurrency=1 pruebas/autenticacion.test.js pruebas/nombres-usuario.test.js pruebas/aislamiento-sucursales.test.js pruebas/sucursales-servicio.test.js pruebas/pedidos-operaciones.test.js pruebas/cola-pedidos.test.js pruebas/recetas.test.js",
     "test:api:integracion": "node --test --test-concurrency=1 pruebas/*.test.js"
   },
   "dependencies": {

@@ -7,6 +7,7 @@ import {
   autorizarPedido,
   solicitarCancelacionPedido,
 } from '../servicios/pedidos-servicio.js';
+import { consultarColaPedidos, moverPedidoEnCola } from '../servicios/cola-pedidos-servicio.js';
 
 export async function listarPedidos(solicitud, respuesta) {
   respuesta.json(await consultarPedidos(solicitud.identidad));
@@ -25,6 +26,20 @@ export async function listarEstadosPedido(solicitud, respuesta) {
 
 export async function listarJornadas(solicitud, respuesta) {
   respuesta.json(await consultarJornadasActivas());
+}
+
+export async function listarColaPedidos(solicitud, respuesta) {
+  respuesta.json(await consultarColaPedidos());
+}
+
+export async function subirPedidoEnCola(solicitud, respuesta) {
+  const identificadorPedido = validarIdentificadorPedido(solicitud.params.id);
+  respuesta.json(await moverPedidoEnCola(identificadorPedido, 'SUBIR'));
+}
+
+export async function bajarPedidoEnCola(solicitud, respuesta) {
+  const identificadorPedido = validarIdentificadorPedido(solicitud.params.id);
+  respuesta.json(await moverPedidoEnCola(identificadorPedido, 'BAJAR'));
 }
 
 export async function registrarPedido(solicitud, respuesta) {

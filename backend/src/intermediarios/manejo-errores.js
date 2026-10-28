@@ -7,7 +7,7 @@ export function manejarError(error, solicitud, respuesta, siguiente) {
   console.error('Error en API:', error.message);
   respuesta
     .status(error.codigoEstado || 500)
-    .json({ error: 'No fue posible completar la operación' });
+    .json({ error: error.mensajeCliente || 'No fue posible completar la operación' });
 }
 
 // Mantiene una respuesta coherente para rutas de API que no existen.
