@@ -2,7 +2,7 @@
 <main class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Pedidos</h1>
-    <a routerLink="/pedidos/nuevo" class="btn btn-primary">Crear pedido</a>
+    <a *ngIf="puedeCrearPedido()" routerLink="/pedidos/nuevo" class="btn btn-primary">Crear pedido</a>
   </div>
   <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
   <div *ngIf="cargando" class="text-center py-4">Cargando pedidos...</div>

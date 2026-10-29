@@ -43,3 +43,43 @@ export async function consultarProductosPorTipo(tipo) {
     await conexion.close();
   }
 }
+
+// Variante tipada para nuevos formularios; no altera el cursor posicional legado.
+export async function consultarProductosDetallados(tipo = null, conexionExterna = null) {
+  const conexion = conexionExterna || await obtenerConexion();
+  try {
+    const condicionTipo = tipo ? ' AND p.TIPO = :tipo' : '';
+    const resultado = await conexion.execute(
+      `SELECT p.ID_PRODUCTO, p.NOMBRE, p.TIPO, p.PRECIO,
+              p.ID_UNIDAD_MEDIDA, um.NOMBRE AS NOMBRE_UNIDAD_MEDIDA,
+              um.ABREVIATURA
+         FROM PRODUCTO p
+         JOIN UNIDAD_MEDIDA um ON um.ID_UNIDAD_MEDIDA = p.ID_UNIDAD_MEDIDA
+        WHERE p.ESTADO = 'A'${condicionTipo}
+        ORDER BY p.NOMBRE, p.TIPO, um.NOMBRE, p.ID_PRODUCTO`,
+      tipo ? { tipo } : {},
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    return resultado.rows;
+  } finally {
+    if (!conexionExterna) await conexion.close();
+  }
+}
+
+// Devuelve las unidades activas requeridas por los formularios de recetas.
+export async function consultarUnidadesMedidaActivas(conexionExterna = null) {
+  const conexion = conexionExterna || await obtenerConexion();
+  try {
+    const resultado = await conexion.execute(
+      `SELECT ID_UNIDAD_MEDIDA, NOMBRE, ABREVIATURA
+         FROM UNIDAD_MEDIDA
+        WHERE ESTADO = :estado
+        ORDER BY NOMBRE`,
+      { estado: 'A' },
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    return resultado.rows;
+  } finally {
+    if (!conexionExterna) await conexion.close();
+  }
+}

@@ -4,7 +4,7 @@ import {
   iniciarSesionUsuario,
   inicializarAccesoUsuario,
 } from '../controladores/acceso-controlador.js';
-import { consultarExistencias, listarProductos } from '../controladores/catalogos-controlador.js';
+import { consultarExistencias, listarProductos, listarUnidadesMedida } from '../controladores/catalogos-controlador.js';
 import { actualizarEstadoUsuario, consultarUsuario, listarUsuarios, modificarUsuario, registrarUsuario } from '../controladores/usuarios-controlador.js';
 import { agregarRolUsuario, eliminarRolUsuario, listarRoles, listarRolesUsuario } from '../controladores/roles-controlador.js';
 import { agregarPermisoRol, eliminarPermisoRol, listarPermisos, listarPermisosEfectivosUsuario, listarPermisosRol } from '../controladores/permisos-controlador.js';
@@ -37,6 +37,7 @@ rutasApi.get('/recetas/:id', manejadorAsincrono(requerirSesion), requerirAlgunPe
 rutasApi.post('/recetas', manejadorAsincrono(requerirSesion), requerirPermiso('GESTIONAR_RECETAS'), manejadorAsincrono(registrarReceta));
 rutasApi.put('/recetas/:id', manejadorAsincrono(requerirSesion), requerirPermiso('GESTIONAR_RECETAS'), manejadorAsincrono(actualizarReceta));
 rutasApi.patch('/recetas/:id/estado', manejadorAsincrono(requerirSesion), requerirPermiso('GESTIONAR_RECETAS'), manejadorAsincrono(inactivarReceta));
+rutasApi.get('/unidades-medida', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS']), manejadorAsincrono(listarUnidadesMedida));
 rutasApi.get('/productos', manejadorAsincrono(requerirSesion), manejadorAsincrono(listarProductos));
 rutasApi.get('/usuarios', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(listarUsuarios));
 rutasApi.get('/usuarios/:id', manejadorAsincrono(requerirSesion), requerirPermiso('VER_USUARIOS'), manejadorAsincrono(consultarUsuario));

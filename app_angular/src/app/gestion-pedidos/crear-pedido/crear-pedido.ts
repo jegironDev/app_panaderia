@@ -33,6 +33,7 @@ export class CrearPedido implements OnInit {
 
   agregarLinea() { this.lineas = [...this.lineas, { identificadorProducto: null, cantidad: 1 }]; }
   quitarLinea(indice: number) { if (this.lineas.length > 1) this.lineas = this.lineas.filter((_, posicion) => posicion !== indice); }
+  cancelar() { this.router.navigate(['/pedidos']); }
 
   guardar() {
     this.error = ''; this.exito = '';

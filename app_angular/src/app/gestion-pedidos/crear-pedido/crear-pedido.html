@@ -15,5 +15,5 @@
       <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" (click)="quitarLinea(indice)" [disabled]="lineas.length === 1">Quitar</button></div>
     </div>
     <button type="button" class="btn btn-outline-primary mt-2" (click)="agregarLinea()">Agregar producto</button>
-  </div><div class="card-footer d-flex justify-content-between align-items-center"><strong>Total estimado: Q{{ totalEstimado | number:'1.2-2' }}</strong><button class="btn btn-primary" [disabled]="guardando">{{ guardando ? 'Registrando...' : 'Registrar pedido' }}</button></div></form>
+  </div><div class="card-footer d-flex justify-content-between align-items-center"><strong>Total estimado: Q{{ totalEstimado | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button><button type="submit" class="btn btn-primary" [disabled]="guardando">{{ guardando ? 'Registrando...' : 'Registrar pedido' }}</button></div></div></form>
 </div></div></main>

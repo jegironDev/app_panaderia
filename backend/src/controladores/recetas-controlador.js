@@ -2,7 +2,7 @@ import {
   consultarRecetaPorIdentificador,
   consultarRecetas,
   crearReceta,
-  desactivarReceta,
+  actualizarEstadoReceta,
   modificarReceta,
 } from '../servicios/recetas-servicio.js';
 
@@ -28,7 +28,7 @@ export async function actualizarReceta(solicitud, respuesta) {
 
 export async function inactivarReceta(solicitud, respuesta) {
   const identificadorReceta = validarIdentificadorReceta(solicitud.params.id);
-  respuesta.json(await desactivarReceta(identificadorReceta));
+  respuesta.json(await actualizarEstadoReceta(identificadorReceta, solicitud.body?.estado));
 }
 
 function validarIdentificadorReceta(valor) {

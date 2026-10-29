@@ -1,2 +1,12 @@
 <app-barra-navegacion></app-barra-navegacion>
-<main class="container py-4"><div class="p-4 p-md-5 mb-4 rounded-3 bg-light"><h1>Bienvenido a Panadería San Carlos</h1><p class="lead mb-4">Gestiona pedidos y consulta la información disponible para tu trabajo diario.</p><div class="d-flex gap-2"><a *ngIf="mostrarPedidos()" routerLink="/pedidos" class="btn btn-primary">Ver pedidos</a><a *ngIf="mostrarUsuarios()" routerLink="/usuarios" class="btn btn-outline-primary">Gestión de usuarios</a></div></div></main>
+<main class="container py-4">
+  <div class="p-4 p-md-5 mb-4 rounded-3 bg-light">
+    <h1>{{ obtenerSaludo() }}</h1>
+    <p class="lead mb-4">Gestiona pedidos y consulta la información disponible para tu trabajo diario.</p>
+    <div class="d-flex gap-2">
+      <a *ngIf="mostrarPedidos()" routerLink="/pedidos" class="btn btn-outline-primary">Ver pedidos</a>
+      <a *ngIf="mostrarRecetas()" routerLink="/recetas" class="btn btn-outline-primary">Gestión de recetas</a>
+      <a *ngIf="mostrarUsuarios()" routerLink="/usuarios" class="btn btn-outline-primary">Gestión de usuarios</a>
+    </div>
+  </div>
+</main>

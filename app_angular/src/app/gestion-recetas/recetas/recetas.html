@@ -1,0 +1,73 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Gestión de recetas</h1>
+    <a *ngIf="api.tienePermiso('GESTIONAR_RECETAS')" routerLink="/recetas/nueva" class="btn btn-primary">Nueva receta</a>
+  </div>
+
+  <p class="text-muted mb-4">Administra las recetas utilizadas para elaborar los productos de la panadería.</p>
+
+  <div *ngIf="cargando" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando recetas...</span>
+    </div>
+  </div>
+
+  <div *ngIf="!cargando && recetas.length === 0" class="alert alert-info">
+    No hay recetas registradas.
+  </div>
+
+  <div *ngIf="!cargando && recetas.length > 0" class="card shadow-sm">
+    <div class="card-body">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Nombre de la receta</th>
+            <th>Producto final</th>
+            <th>Rendimiento</th>
+            <th>Estado</th>
+            <th>Cantidad de ingredientes</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let receta of recetas">
+            <td>{{ receta.NOMBRE }}</td>
+            <td>{{ receta.NOMBRE_PRODUCTO }}</td>
+            <td>{{ receta.UNIDADES_PRODUCIDAS }} unidades</td>
+            <td>{{ obtenerEstado(receta.ESTADO) }}</td>
+            <td>{{ receta.INGREDIENTES }}</td>
+            <td>
+              <a [routerLink]="['/recetas', receta.ID_RECETA]" class="btn btn-sm btn-outline-primary me-2">Ver detalle</a>
+              <a *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" [routerLink]="['/recetas', receta.ID_RECETA, 'editar']" class="btn btn-sm btn-outline-secondary me-2">Editar</a>
+              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" class="btn btn-sm btn-outline-danger" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Desactivar</button>
+              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'I'" class="btn btn-sm btn-outline-success" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Activar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  <div *ngIf="exito" class="alert alert-success">{{ exito }}</div>
+
+  <div *ngIf="mostrarDialogoConfirmacion" class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ accionPendiente === 'activar' ? 'Activar receta' : 'Desactivar receta' }}</h5>
+          <button type="button" class="btn-close" (click)="cancelarConfirmacion()"></button>
+        </div>
+        <div class="modal-body">
+          <p>{{ accionPendiente === 'activar' ? '¿Deseas activar esta receta?' : '¿Deseas desactivar esta receta? Permanecerá registrada para conservar el historial.' }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" [disabled]="procesandoCambioEstado" (click)="cancelarConfirmacion()">Cancelar</button>
+          <button type="button" class="btn btn-primary" [disabled]="procesandoCambioEstado" (click)="ejecutarAccionPendiente()">{{ accionPendiente === 'activar' ? 'Activar' : 'Desactivar' }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

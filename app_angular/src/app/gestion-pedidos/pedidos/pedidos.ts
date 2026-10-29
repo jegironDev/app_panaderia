@@ -24,6 +24,13 @@ export class Pedidos implements OnInit {
     });
   }
 
+  puedeCrearPedido(): boolean {
+    const identificadorSucursal = this.api.obtenerIdentificadorSucursalSesion();
+    return this.api.tienePermiso('CREAR_PEDIDOS')
+      && Number.isInteger(identificadorSucursal)
+      && (identificadorSucursal as number) > 0;
+  }
+
   private mostrarError(error: any, mensaje: string) {
     this.cargando = false;
     if (error.status === 401) {

@@ -1,0 +1,75 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <h1 class="mb-4">Editar receta</h1>
+  <p class="text-muted mb-4">Actualiza los ingredientes y el rendimiento de una receta existente.</p>
+
+  <div *ngIf="cargando" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+
+  <div *ngIf="!cargando" class="card shadow-sm">
+    <div class="card-body">
+      <form (ngSubmit)="guardarReceta()">
+        <div class="mb-3">
+          <label class="form-label">Seleccione un tipo de producto *</label>
+          <select class="form-select" name="identificadorProducto" [(ngModel)]="identificadorProducto" required>
+            <option [ngValue]="null">Seleccione un producto</option>
+            <option *ngFor="let producto of productosTerminados" [ngValue]="producto.ID_PRODUCTO">
+              {{ producto.NOMBRE }}
+            </option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Nombre de la receta *</label>
+          <input class="form-control" name="nombre" [(ngModel)]="nombre" maxlength="100" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Rendimiento (unidades que se produce) *</label>
+          <input class="form-control" type="number" name="unidadesProducidas" [(ngModel)]="unidadesProducidas" min="1" step="1" required>
+        </div>
+
+        <h5 class="mb-3">Ingredientes</h5>
+
+        <div *ngFor="let ingrediente of ingredientes; let i = index" class="card mb-3 p-3">
+          <div class="row">
+            <div class="col-md-4 mb-2">
+              <label class="form-label">Ingrediente</label>
+              <select class="form-select" name="ingrediente_{{ i }}" [(ngModel)]="ingrediente.identificadorProducto" (ngModelChange)="onProductoIngredienteChange(i)" required>
+                <option [ngValue]="0">Seleccione un producto</option>
+                <option *ngFor="let producto of productosIngredientes" [ngValue]="producto.ID_PRODUCTO">
+                  {{ producto.NOMBRE }} - {{ producto.ABREVIATURA }}
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label">Unidad de medida</label>
+              <input class="form-control" name="unidad_{{ i }}" [value]="ingrediente.abreviaturaUnidad" readonly>
+            </div>
+            <div class="col-md-3 mb-2">
+              <label class="form-label">Cantidad</label>
+              <input class="form-control" type="number" name="cantidad_{{ i }}" [(ngModel)]="ingrediente.cantidad" min="0.01" step="0.01" required>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarIngrediente(i)">Quitar</button>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary mb-3" (click)="agregarIngrediente()">Agregar ingrediente</button>
+
+        <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+        <div *ngIf="exito" class="alert alert-success">{{ exito }}</div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" [disabled]="guardando">Guardar cambios</button>
+          <button type="button" class="btn btn-secondary" routerLink="/recetas">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</main>

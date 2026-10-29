@@ -1,0 +1,56 @@
+<app-barra-navegacion></app-barra-navegacion>
+
+<main class="container py-4">
+  <div *ngIf="cargando" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+
+  <div *ngIf="!cargando && receta" class="card shadow-sm">
+    <div class="card-body">
+      <h1 class="mb-4">Detalle de receta</h1>
+
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <p><strong>Nombre:</strong> {{ receta.NOMBRE }}</p>
+          <p><strong>Producto final:</strong> {{ receta.NOMBRE_PRODUCTO }}</p>
+          <p><strong>Rendimiento:</strong> {{ receta.UNIDADES_PRODUCIDAS }} unidades</p>
+          <p><strong>Estado:</strong> {{ obtenerEstado(receta.ESTADO) }}</p>
+        </div>
+      </div>
+
+      <h5 class="mb-3">Ingredientes registrados</h5>
+
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Ingrediente</th>
+            <th>Tipo</th>
+            <th>Cantidad</th>
+            <th>Unidad de medida</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ingrediente of receta.INGREDIENTES">
+            <td>{{ ingrediente.NOMBRE_PRODUCTO }}</td>
+            <td>{{ ingrediente.TIPO_PRODUCTO }}</td>
+            <td>{{ ingrediente.CANTIDAD }}</td>
+            <td>{{ ingrediente.NOMBRE_UNIDAD_MEDIDA }} ({{ ingrediente.ABREVIATURA }})</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="d-flex gap-2 mt-4">
+        <button class="btn btn-secondary" routerLink="/recetas">Volver a recetas</button>
+        <a *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" [routerLink]="['/recetas', receta.ID_RECETA, 'editar']" class="btn btn-primary">Editar receta</a>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!cargando && !receta" class="alert alert-warning">
+    La receta solicitada no fue encontrada.
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+</main>

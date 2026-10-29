@@ -7,6 +7,11 @@ import { ApiService } from '../api.service';
 @Component({ standalone: true, imports: [CommonModule, RouterLink, BarraNavegacion], templateUrl: './inicio.html' })
 export class Inicio {
   constructor(private readonly api: ApiService) {}
+  obtenerSaludo(): string {
+    const nombre = this.api.obtenerNombreSesion();
+    return nombre ? `Bienvenido/a ${nombre}` : 'Bienvenido/a';
+  }
   mostrarUsuarios(): boolean { return this.api.tieneAlgunPermiso(['VER_USUARIOS']); }
   mostrarPedidos(): boolean { return this.api.tieneAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']); }
+  mostrarRecetas(): boolean { return this.api.tieneAlgunPermiso(['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS']); }
 }

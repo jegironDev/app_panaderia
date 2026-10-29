@@ -79,6 +79,15 @@ export interface ProductoPedido {
 export interface Jornada { ID_JORNADA: number; NOMBRE: string; }
 export interface EstadoPedido { ID_ESTADO_PEDIDO: number; NOMBRE: string; DESCRIPCION?: string | null; }
 export interface Producto { ID_PRODUCTO: number; NOMBRE: string; TIPO: string; PRECIO: number; }
+export interface ProductoDetallado {
+  ID_PRODUCTO: number;
+  NOMBRE: string;
+  TIPO: string;
+  PRECIO: number;
+  ID_UNIDAD_MEDIDA: number;
+  NOMBRE_UNIDAD_MEDIDA: string;
+  ABREVIATURA: string;
+}
 type ProductoRespuestaOracle = Producto | [number, string, string, number];
 export interface CrearPedidoRequest {
   identificadorJornada: number;
@@ -86,6 +95,64 @@ export interface CrearPedidoRequest {
   detalles: Array<{ identificadorProducto: number; cantidad: number }>;
 }
 export interface SolicitudCancelacion { identificadorSolicitud: number; estado: string; motivo: string; }
+
+// Interfaces para recetas
+export interface RecetaResumen {
+  ID_RECETA: number;
+  NOMBRE: string;
+  ID_PRODUCTO: number;
+  NOMBRE_PRODUCTO: string;
+  UNIDADES_PRODUCIDAS: number;
+  ESTADO: string;
+  INGREDIENTES: number;
+}
+
+export interface RecetaDetalle {
+  ID_RECETA: number;
+  NOMBRE: string;
+  ID_PRODUCTO: number;
+  NOMBRE_PRODUCTO: string;
+  UNIDADES_PRODUCIDAS: number;
+  ESTADO: string;
+  INGREDIENTES: IngredienteReceta[];
+}
+
+export interface IngredienteReceta {
+  ID_DETALLE_RECETA: number;
+  ID_PRODUCTO: number;
+  NOMBRE_PRODUCTO: string;
+  TIPO_PRODUCTO: string;
+  ID_UNIDAD_MEDIDA: number;
+  NOMBRE_UNIDAD_MEDIDA: string;
+  ABREVIATURA: string;
+  CANTIDAD: number;
+}
+
+export interface UnidadMedida {
+  ID_UNIDAD_MEDIDA: number;
+  NOMBRE: string;
+  ABREVIATURA: string;
+}
+
+export interface CrearRecetaRequest {
+  identificadorProducto: number;
+  nombre: string;
+  unidadesProducidas: number;
+  ingredientes: IngredienteRequest[];
+}
+
+export interface EditarRecetaRequest {
+  identificadorProducto: number;
+  nombre: string;
+  unidadesProducidas: number;
+  ingredientes: IngredienteRequest[];
+}
+
+export interface IngredienteRequest {
+  identificadorProducto: number;
+  identificadorUnidadMedida: number;
+  cantidad: number;
+}
 
 // El cursor Oracle de productos devuelve arreglos en el orden definido por PKG_CONSULTAS.
 export function convertirProductoRespuesta(fila: ProductoRespuestaOracle): Producto {
@@ -120,6 +187,7 @@ export class ApiService {
     sessionStorage.setItem('identidad', JSON.stringify({
       identificadorUsuario: datos.usuario?.identificadorUsuario,
       identificadorSucursal: datos.usuario?.identificadorSucursal ?? null,
+      nombre: typeof datos.usuario?.nombre === 'string' ? datos.usuario.nombre.trim() : null,
     }));
   }
   limpiarSesion() { sessionStorage.removeItem('token'); sessionStorage.removeItem('permisos'); sessionStorage.removeItem('identidad'); }
@@ -134,6 +202,12 @@ export class ApiService {
     try {
       const identificador = Number(JSON.parse(sessionStorage.getItem('identidad') || '{}').identificadorSucursal);
       return Number.isInteger(identificador) && identificador > 0 ? identificador : null;
+    } catch { return null; }
+  }
+  obtenerNombreSesion(): string | null {
+    try {
+      const nombre = JSON.parse(sessionStorage.getItem('identidad') || '{}').nombre;
+      return typeof nombre === 'string' && nombre.trim() ? nombre.trim() : null;
     } catch { return null; }
   }
   iniciarSesion(datos: unknown) { return this.http.post<any>(`${this.baseUrl}/acceso/iniciar-sesion`, datos); }
@@ -154,7 +228,19 @@ export class ApiService {
   productosTerminados() {
     return this.http.get<Producto[]>(`${this.baseUrl}/productos?tipo=PFI`, this.encabezados());
   }
+  productosDetallados() {
+    return this.http.get<ProductoDetallado[]>(`${this.baseUrl}/productos?formato=detallado`, this.encabezados());
+  }
+  productosTerminadosDetallados() {
+    return this.http.get<ProductoDetallado[]>(`${this.baseUrl}/productos?tipo=PFI&formato=detallado`, this.encabezados());
+  }
   crearPedido(datos: CrearPedidoRequest) { return this.http.post<DetallePedido>(`${this.baseUrl}/pedidos`, datos, this.encabezados()); }
   autorizarPedido(id: number) { return this.http.post<DetallePedido>(`${this.baseUrl}/pedidos/${id}/autorizar`, {}, this.encabezados()); }
   solicitarCancelacion(id: number, motivo: string) { return this.http.post<SolicitudCancelacion>(`${this.baseUrl}/pedidos/${id}/solicitudes-cancelacion`, { motivo }, this.encabezados()); }
+  recetas() { return this.http.get<RecetaResumen[]>(`${this.baseUrl}/recetas`, this.encabezados()); }
+  recetaPorId(id: number) { return this.http.get<RecetaDetalle>(`${this.baseUrl}/recetas/${id}`, this.encabezados()); }
+  crearReceta(datos: CrearRecetaRequest) { return this.http.post<RecetaDetalle>(`${this.baseUrl}/recetas`, datos, this.encabezados()); }
+  editarReceta(id: number, datos: EditarRecetaRequest) { return this.http.put<RecetaDetalle>(`${this.baseUrl}/recetas/${id}`, datos, this.encabezados()); }
+  cambiarEstadoReceta(id: number, estado: string) { return this.http.patch(`${this.baseUrl}/recetas/${id}/estado`, { estado }, this.encabezados()); }
+  unidadesMedida() { return this.http.get<UnidadMedida[]>(`${this.baseUrl}/unidades-medida`, this.encabezados()); }
 }

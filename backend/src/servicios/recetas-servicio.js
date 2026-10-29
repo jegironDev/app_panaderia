@@ -41,8 +41,8 @@ export function validarDatosReceta(datos) {
   if (!nombre || nombre.length > 100) throw crearError('El nombre de la receta es obligatorio y debe tener hasta 100 caracteres', 400, true);
 
   const unidadesProducidas = Number(datos?.unidadesProducidas);
-  if (!Number.isFinite(unidadesProducidas) || unidadesProducidas <= 0 || !tieneHastaTresDecimales(unidadesProducidas)) {
-    throw crearError('El rendimiento debe ser positivo y tener hasta tres decimales', 400, true);
+  if (!Number.isInteger(unidadesProducidas) || unidadesProducidas <= 0) {
+    throw crearError('El rendimiento debe ser un entero positivo', 400, true);
   }
   if (!Array.isArray(datos?.ingredientes) || !datos.ingredientes.length) {
     throw crearError('Debe incluir al menos un ingrediente', 400, true);
@@ -53,8 +53,8 @@ export function validarDatosReceta(datos) {
     const identificadorIngrediente = convertirIdentificador(ingrediente?.identificadorProducto, 'ingrediente');
     const identificadorUnidadMedida = convertirIdentificador(ingrediente?.identificadorUnidadMedida, 'unidad de medida');
     const cantidad = Number(ingrediente?.cantidad);
-    if (!Number.isFinite(cantidad) || cantidad <= 0 || !tieneHastaTresDecimales(cantidad)) {
-      throw crearError('La cantidad de cada ingrediente debe ser positiva y tener hasta tres decimales', 400, true);
+    if (!Number.isFinite(cantidad) || cantidad <= 0 || !tieneHastaDosDecimales(cantidad)) {
+      throw crearError('La cantidad de cada ingrediente debe ser positiva y tener hasta dos decimales', 400, true);
     }
     if (productos.has(identificadorIngrediente)) throw crearError('No se permiten ingredientes repetidos', 400, true);
     productos.add(identificadorIngrediente);
@@ -107,7 +107,12 @@ export async function modificarReceta(identificadorReceta, datosRecibidos, conex
               NOMBRE = :nombre,
               UNIDADES_PRODUCIDAS = :unidadesProducidas
         WHERE ID_RECETA = :identificadorReceta`,
-      { ...datos, identificadorReceta },
+      {
+        identificadorProducto: datos.identificadorProducto,
+        nombre: datos.nombre,
+        unidadesProducidas: datos.unidadesProducidas,
+        identificadorReceta,
+      },
     );
     await conexion.execute('DELETE FROM DETALLE_RECETA WHERE ID_RECETA = :identificadorReceta', { identificadorReceta });
     await guardarIngredientes(conexion, identificadorReceta, datos.ingredientes);
@@ -122,13 +127,19 @@ export async function modificarReceta(identificadorReceta, datosRecibidos, conex
   }
 }
 
-// Desactivar conserva la receta y sus detalles para proteger el historial operativo.
+// Conserva compatibilidad: una llamada sin estado continúa desactivando la receta.
 export async function desactivarReceta(identificadorReceta, conexionExterna = null) {
+  return actualizarEstadoReceta(identificadorReceta, 'I', conexionExterna);
+}
+
+// Activa o desactiva sin alterar ingredientes, producciones ni historial.
+export async function actualizarEstadoReceta(identificadorReceta, estadoRecibido = undefined, conexionExterna = null) {
+  const estado = normalizarEstadoReceta(estadoRecibido);
   const conexion = conexionExterna || await obtenerConexion();
   try {
     const resultado = await conexion.execute(
-      "UPDATE RECETA SET ESTADO = 'I' WHERE ID_RECETA = :identificadorReceta",
-      { identificadorReceta },
+      'UPDATE RECETA SET ESTADO = :estado WHERE ID_RECETA = :identificadorReceta',
+      { identificadorReceta, estado },
       { autoCommit: false },
     );
     if (!resultado.rowsAffected) throw crearError('Receta no encontrada', 404, true);
@@ -199,11 +210,14 @@ async function verificarProductoTerminadoActivo(conexion, identificadorProducto)
 async function verificarIngredientes(conexion, ingredientes) {
   for (const ingrediente of ingredientes) {
     const producto = await conexion.execute(
-      "SELECT ID_PRODUCTO FROM PRODUCTO WHERE ID_PRODUCTO = :identificadorProducto AND TIPO IN ('MAT', 'INS') AND ESTADO = 'A'",
+      "SELECT ID_PRODUCTO, ID_UNIDAD_MEDIDA FROM PRODUCTO WHERE ID_PRODUCTO = :identificadorProducto AND TIPO IN ('MAT', 'INS') AND ESTADO = 'A'",
       { identificadorProducto: ingrediente.identificadorProducto },
       formatoFilas,
     );
     if (!producto.rows.length) throw crearError('Un ingrediente no existe, no es MAT o INS, o está inactivo', 404, true);
+    if (producto.rows[0].ID_UNIDAD_MEDIDA !== ingrediente.identificadorUnidadMedida) {
+      throw crearError('La unidad de medida seleccionada no corresponde al ingrediente.', 400, true);
+    }
     const unidad = await conexion.execute(
       "SELECT ID_UNIDAD_MEDIDA FROM UNIDAD_MEDIDA WHERE ID_UNIDAD_MEDIDA = :identificadorUnidadMedida AND ESTADO = 'A'",
       { identificadorUnidadMedida: ingrediente.identificadorUnidadMedida },
@@ -229,8 +243,15 @@ function convertirIdentificador(valor, entidad) {
   return identificador;
 }
 
-function tieneHastaTresDecimales(valor) {
-  return Math.abs((valor * 1000) - Math.round(valor * 1000)) < 0.0000001;
+function tieneHastaDosDecimales(valor) {
+  return Math.abs((valor * 100) - Math.round(valor * 100)) < 0.0000001;
+}
+
+function normalizarEstadoReceta(estadoRecibido) {
+  if (estadoRecibido === undefined || estadoRecibido === null) return 'I';
+  const estado = typeof estadoRecibido === 'string' ? estadoRecibido.trim().toUpperCase() : '';
+  if (!['A', 'I'].includes(estado)) throw crearError('El estado de receta debe ser A o I', 400, true);
+  return estado;
 }
 
 function crearError(mensaje, codigoEstado, exponerAlCliente = false) {

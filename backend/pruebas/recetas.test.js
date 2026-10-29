@@ -6,6 +6,7 @@ import {
   consultarRecetaPorIdentificador,
   consultarRecetas,
   crearReceta,
+  actualizarEstadoReceta,
   desactivarReceta,
   modificarReceta,
   validarDatosReceta,
@@ -16,8 +17,8 @@ const recetaValida = {
   nombre: 'Pan francés diario',
   unidadesProducidas: 100,
   ingredientes: [
-    { identificadorProducto: 20, identificadorUnidadMedida: 1, cantidad: 5 },
-    { identificadorProducto: 21, identificadorUnidadMedida: 1, cantidad: 0.1 },
+    { identificadorProducto: 20, identificadorUnidadMedida: 5, cantidad: 5 },
+    { identificadorProducto: 21, identificadorUnidadMedida: 5, cantidad: 0.1 },
   ],
 };
 
@@ -26,10 +27,11 @@ test('valida receta, rendimiento e ingredientes configurables', () => {
   for (const datos of [
     { ...recetaValida, nombre: '' },
     { ...recetaValida, unidadesProducidas: 0 },
-    { ...recetaValida, unidadesProducidas: 1.0001 },
+    { ...recetaValida, unidadesProducidas: 1.5 },
     { ...recetaValida, ingredientes: [] },
-    { ...recetaValida, ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 1, cantidad: 1 }, { identificadorProducto: 20, identificadorUnidadMedida: 1, cantidad: 2 }] },
-    { ...recetaValida, ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 1, cantidad: -1 }] },
+    { ...recetaValida, ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 5, cantidad: 1 }, { identificadorProducto: 20, identificadorUnidadMedida: 5, cantidad: 2 }] },
+    { ...recetaValida, ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 5, cantidad: -1 }] },
+    { ...recetaValida, ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 5, cantidad: 0.001 }] },
   ]) {
     assert.throws(() => validarDatosReceta(datos), error => error.codigoEstado === 400);
   }
@@ -87,7 +89,7 @@ test('revierte la creación completa si falla la inserción de un detalle', asyn
   const conexion = {
     async execute(sql, parametros) {
       if (sql.includes("TIPO = 'PFI'")) return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto }] };
-      if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto }] };
+      if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: [{ ID_PRODUCTO: parametros.identificadorProducto, ID_UNIDAD_MEDIDA: 5 }] };
       if (sql.includes('FROM UNIDAD_MEDIDA')) return { rows: [{ ID_UNIDAD_MEDIDA: parametros.identificadorUnidadMedida }] };
       if (sql.includes('INSERT INTO RECETA')) return { outBinds: { identificadorReceta: [70] } };
       if (sql.includes('INSERT INTO DETALLE_RECETA')) throw new Error('Fallo simulado de detalle');
@@ -114,12 +116,33 @@ test('POST conserva la conexión prestada hasta consultar, confirmar y devolver 
 
 test('PUT conserva la conexión prestada durante actualización, consulta y confirmación', async () => {
   const eventos = [];
-  const conexion = crearConexionReceta({ eventos, producciones: 0 });
+  let parametrosActualizacion;
+  const conexion = crearConexionReceta({
+    eventos,
+    producciones: 0,
+    alActualizar(parametros) { parametrosActualizacion = parametros; },
+  });
   const resultado = await modificarReceta(7, recetaValida, conexion);
   assert.equal(resultado.ID_RECETA, 7);
   assert.equal(eventos.includes('CERRAR'), false);
   assert.ok(eventos.indexOf('ACTUALIZAR_CABECERA') < eventos.indexOf('CONSULTAR_CABECERA'));
   assert.ok(eventos.indexOf('CONSULTAR_DETALLE') < eventos.indexOf('COMMIT'));
+  assert.deepEqual(Object.keys(parametrosActualizacion).sort(), [
+    'identificadorProducto', 'identificadorReceta', 'nombre', 'unidadesProducidas',
+  ]);
+  assert.equal(Object.hasOwn(parametrosActualizacion, 'ingredientes'), false);
+});
+
+test('editar revierte encabezado e ingredientes cuando falla el reemplazo de un detalle', async () => {
+  let confirmaciones = 0;
+  let reversiones = 0;
+  const conexion = crearConexionReceta({ producciones: 0, fallarDetalle: true, confirmaciones, reversiones });
+  conexion.commit = async () => { confirmaciones += 1; };
+  conexion.rollback = async () => { reversiones += 1; };
+
+  await assert.rejects(() => modificarReceta(7, recetaValida, conexion), /Fallo simulado de detalle/);
+  assert.equal(confirmaciones, 0);
+  assert.equal(reversiones, 1);
 });
 
 test('crear rechaza producto final no válido, ingredientes no MAT/INS y unidades inactivas', async () => {
@@ -127,6 +150,17 @@ test('crear rechaza producto final no válido, ingredientes no MAT/INS y unidade
     const conexion = crearConexionReceta({ tipoFallo });
     await assert.rejects(() => crearReceta(recetaValida, conexion), error => error.codigoEstado === 404);
   }
+});
+
+test('rechaza una unidad que no corresponde exactamente al ingrediente', async () => {
+  const datos = {
+    ...recetaValida,
+    ingredientes: [{ identificadorProducto: 20, identificadorUnidadMedida: 4, cantidad: 1 }],
+  };
+  await assert.rejects(
+    () => crearReceta(datos, crearConexionReceta({ unidadProducto: 5 })),
+    error => error.codigoEstado === 400 && error.mensajeCliente === 'La unidad de medida seleccionada no corresponde al ingrediente.',
+  );
 });
 
 test('editar queda bloqueado si la receta tiene producciones asociadas', async () => {
@@ -162,6 +196,18 @@ test('desactivar conserva la receta y no elimina cabecera ni detalles', async ()
   assert.equal(resultado.ESTADO, 'I');
   assert.equal(operaciones.some(sql => sql.startsWith('UPDATE RECETA SET ESTADO')), true);
   assert.equal(operaciones.some(sql => sql.startsWith('DELETE FROM RECETA')), false);
+});
+
+test('activa, desactiva y conserva compatibilidad al omitir el estado', async () => {
+  const conexion = crearConexionReceta({});
+  const activada = await actualizarEstadoReceta(7, 'A', conexion);
+  assert.equal(activada.ESTADO, 'A');
+  const desactivada = await actualizarEstadoReceta(7, undefined, conexion);
+  assert.equal(desactivada.ESTADO, 'I');
+  await assert.rejects(
+    () => actualizarEstadoReceta(7, 'X', conexion),
+    error => error.codigoEstado === 400,
+  );
 });
 
 test('las rutas de recetas exigen sesión y el permiso correcto sin usar TIPO', async () => {
@@ -200,13 +246,21 @@ function crearConexionReceta(opciones = {}) {
       opciones.operaciones?.push(sql);
       if (sql.includes('PRODUCCIONES')) return { rows: [{ ID_RECETA: parametros.identificadorReceta, PRODUCCIONES: opciones.producciones || 0 }] };
       if (sql.includes("TIPO = 'PFI'")) return { rows: opciones.tipoFallo === 'productoFinal' ? [] : [{ ID_PRODUCTO: parametros.identificadorProducto }] };
-      if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: opciones.tipoFallo === 'ingrediente' ? [] : [{ ID_PRODUCTO: parametros.identificadorProducto }] };
+      if (sql.includes("TIPO IN ('MAT', 'INS')")) return { rows: opciones.tipoFallo === 'ingrediente' ? [] : [{ ID_PRODUCTO: parametros.identificadorProducto, ID_UNIDAD_MEDIDA: opciones.unidadProducto || 5 }] };
       if (sql.includes('FROM UNIDAD_MEDIDA')) return { rows: opciones.tipoFallo === 'unidad' ? [] : [{ ID_UNIDAD_MEDIDA: parametros.identificadorUnidadMedida }] };
       if (sql.includes('INSERT INTO RECETA')) { opciones.eventos?.push('INSERTAR_CABECERA'); return { outBinds: { identificadorReceta: [opciones.alInsertarReceta?.(parametros) || 7] } }; }
-      if (sql.includes('INSERT INTO DETALLE_RECETA')) { opciones.eventos?.push('INSERTAR_DETALLE'); return {}; }
+      if (sql.includes('INSERT INTO DETALLE_RECETA')) {
+        if (opciones.fallarDetalle) throw new Error('Fallo simulado de detalle');
+        opciones.eventos?.push('INSERTAR_DETALLE');
+        return {};
+      }
       if (sql.startsWith('DELETE FROM DETALLE_RECETA')) return {};
-      if (sql.startsWith('UPDATE RECETA\n')) { opciones.eventos?.push('ACTUALIZAR_CABECERA'); return {}; }
-      if (sql.startsWith('UPDATE RECETA SET ESTADO')) { estado = 'I'; return { rowsAffected: 1 }; }
+      if (sql.startsWith('UPDATE RECETA\n')) {
+        opciones.alActualizar?.(parametros);
+        opciones.eventos?.push('ACTUALIZAR_CABECERA');
+        return {};
+      }
+      if (sql.startsWith('UPDATE RECETA SET ESTADO')) { estado = parametros.estado; return { rowsAffected: 1 }; }
       if (sql.includes('FROM RECETA r') && !sql.includes('PRODUCCIONES')) {
         opciones.eventos?.push('CONSULTAR_CABECERA');
         return { rows: [{ ID_RECETA: parametros.identificadorReceta, NOMBRE: 'Receta', UNIDADES_PRODUCIDAS: 100, ESTADO: estado, ID_PRODUCTO: 10, NOMBRE_PRODUCTO: 'Pan', TIPO_PRODUCTO: 'PFI' }] };

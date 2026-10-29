@@ -4,6 +4,7 @@
     <div class="d-flex">
       <a *ngIf="mostrarUsuarios()" class="nav-link" routerLink="/usuarios">Usuarios</a>
       <a *ngIf="mostrarPedidos()" class="nav-link ms-3" routerLink="/pedidos">Pedidos</a>
+      <a *ngIf="mostrarRecetas()" class="nav-link ms-3" routerLink="/recetas">Recetas</a>
       <button class="btn btn-outline-danger btn-sm ms-3" (click)="cerrarSesion()">Cerrar sesión</button>
     </div>
   </div>
