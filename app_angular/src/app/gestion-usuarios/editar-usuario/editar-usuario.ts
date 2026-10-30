@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApiService, EditarUsuarioRequest, Sucursal, TipoUsuario, Usuario } from '../../api.service';
+import { ApiService, EditarUsuarioRequest, Puesto, Sucursal, TipoUsuario, Usuario } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
 
 @Component({
@@ -17,7 +17,8 @@ export class EditarUsuario implements OnInit {
   segundoNombre: string | null = null;
   primerApellido = '';
   segundoApellido: string | null = null;
-  puesto: string | null = null;
+  identificadorPuesto: number | null = null;
+  puestos: Puesto[] = [];
   tipo: TipoUsuario = 'ESTANDAR';
   identificadorSucursal: number | null = null;
   sucursales: Sucursal[] = [];
@@ -44,6 +45,7 @@ export class EditarUsuario implements OnInit {
     }
     this.idUsuario = identificador;
     this.cargarSucursales();
+    this.api.puestosAsignables().subscribe({ next: puestos => { this.puestos = puestos; this.asignarPuestoDesdeTexto(); this.detectorCambios.markForCheck(); }, error: () => { this.error = 'No fue posible cargar los puestos.'; this.detectorCambios.markForCheck(); } });
     this.cargarUsuario();
   }
 
@@ -81,6 +83,13 @@ export class EditarUsuario implements OnInit {
     if (this.tipo !== 'ESTANDAR') this.identificadorSucursal = null;
   }
 
+  cambiarPuesto() {
+    const puesto = this.puestos.find(item => item.ID_ROL === this.identificadorPuesto);
+    if (!puesto) return;
+    this.tipo = puesto.NOMBRE === 'ADMINISTRADOR' ? 'ADMIN' : puesto.NOMBRE === 'USUARIO_SUCURSAL' ? 'ESTANDAR' : 'OPERATIVO';
+    this.cambiarTipo();
+  }
+
   actualizarUsuario() {
     this.error = '';
     this.exito = false;
@@ -98,7 +107,7 @@ export class EditarUsuario implements OnInit {
       segundoNombre: this.normalizarOpcional(this.segundoNombre),
       primerApellido: this.primerApellido,
       segundoApellido: this.normalizarOpcional(this.segundoApellido),
-      puesto: this.normalizarOpcional(this.puesto),
+      identificadorPuesto: this.identificadorPuesto,
       tipo: this.tipo,
       identificadorSucursal: this.tipo === 'ESTANDAR' ? this.identificadorSucursal : null,
     };
@@ -122,9 +131,15 @@ export class EditarUsuario implements OnInit {
     this.segundoNombre = usuario.SEGUNDO_NOMBRE;
     this.primerApellido = usuario.PRIMER_APELLIDO;
     this.segundoApellido = usuario.SEGUNDO_APELLIDO;
-    this.puesto = usuario.PUESTO;
+    this.puestoTexto = usuario.PUESTO;
+    this.asignarPuestoDesdeTexto();
     this.tipo = usuario.TIPO;
     this.identificadorSucursal = usuario.ID_SUCURSAL;
+  }
+
+  private puestoTexto: string | null = null;
+  private asignarPuestoDesdeTexto() {
+    if (this.puestoTexto && this.puestos.length) { this.identificadorPuesto = this.puestos.find(puesto => puesto.NOMBRE === this.puestoTexto)?.ID_ROL ?? null; this.cambiarPuesto(); }
   }
 
   private normalizarOpcional(valor: string | null) {

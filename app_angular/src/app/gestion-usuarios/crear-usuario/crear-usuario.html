@@ -40,15 +40,16 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Puesto (opcional)</label>
-          <input class="form-control" name="puesto" [(ngModel)]="puesto" (ngModelChange)="normalizarCampo($event, 'puesto')">
+          <label class="form-label">Puesto</label>
+          <select class="form-select" name="identificadorPuesto" [(ngModel)]="identificadorPuesto" (ngModelChange)="onPuestoChange()">
+            <option [ngValue]="null">Sin puesto asignado</option>
+            <option *ngFor="let puesto of puestos" [ngValue]="puesto.ID_ROL">{{ puesto.NOMBRE }}</option>
+          </select>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Tipo *</label>
-          <select class="form-select" name="tipo" [(ngModel)]="tipo" (ngModelChange)="onTipoChange()" required>
-            <option *ngFor="let tipo of tiposUsuario" [ngValue]="tipo">{{ tipo }}</option>
-          </select>
+          <input class="form-control" [value]="tipo === 'ESTANDAR' ? 'Usuario de sucursal' : tipo" readonly>
         </div>
 
         <div class="mb-3" *ngIf="tipo === 'ESTANDAR'">

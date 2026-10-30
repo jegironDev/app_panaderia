@@ -145,7 +145,7 @@ export function validarMotivoCancelacion(motivo) {
   return motivoNormalizado;
 }
 
-export async function crearPedido(datosRecibidos, identidad, conexionExterna = null) {
+export async function crearPedido(datosRecibidos, identidad, conexionExterna = null, administrarTransaccion = true) {
   const datos = validarDatosNuevoPedido(datosRecibidos);
   const identificadorSucursal = obtenerSucursalAutenticada(identidad);
   const conexion = conexionExterna || await obtenerConexion();
@@ -200,13 +200,13 @@ export async function crearPedido(datosRecibidos, identidad, conexionExterna = n
        VALUES (:identificadorPedido, :identificadorUsuario, 'CREADO', :comentario)`,
       { identificadorPedido, identificadorUsuario: identidad.identificadorUsuario, comentario: 'Pedido creado' },
     );
-    await conexion.commit();
+    if (administrarTransaccion) await conexion.commit();
     if (conexionExterna) {
       return { ID_PEDIDO: identificadorPedido, TOTAL: total, DETALLES: detallesConPrecio };
     }
     return consultarPedidoPorIdentificador(identificadorPedido, identidad);
   } catch (error) {
-    await conexion.rollback();
+    if (administrarTransaccion) await conexion.rollback();
     throw error;
   } finally {
     if (!conexionExterna) await conexion.close();
@@ -300,6 +300,9 @@ async function obtenerProductoTerminadoActivo(conexion, identificadorProducto) {
     { identificadorProducto }, formatoFilas,
   );
   if (!resultado.rows.length) throw crearError('Producto final no encontrado o inactivo', 404);
+  if (!Number.isFinite(Number(resultado.rows[0].PRECIO)) || Number(resultado.rows[0].PRECIO) <= 0) {
+    throw crearError('El producto final no tiene un precio de venta configurado.', 409, true);
+  }
   return resultado.rows[0];
 }
 

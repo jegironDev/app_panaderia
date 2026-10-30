@@ -24,6 +24,11 @@ export function cerrarSesionUsuario(solicitud, respuesta) {
   return respuesta.status(204).send();
 }
 
+// Permite que Angular compruebe una sesión persistida antes de abrir una ruta privada.
+export function consultarSesionUsuario(solicitud, respuesta) {
+  return respuesta.json({ usuario: solicitud.identidad });
+}
+
 // Recibe datos iniciales solamente para una base sin usuarios ni roles.
 export async function inicializarAccesoUsuario(solicitud, respuesta) {
   const claveInicial = solicitud.header('x-clave-inicial');

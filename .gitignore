@@ -15,6 +15,7 @@
 *.log
 
 # Scripts Oracle locales de referencia
+# Excluido de Git pero accesible para el agente Devin
 /database/
 /database_v*/
 /agentes/

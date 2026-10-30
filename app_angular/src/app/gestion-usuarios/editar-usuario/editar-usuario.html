@@ -20,12 +20,10 @@
           <div class="col-md-6 mb-3"><label class="form-label" for="primerApellido">Primer apellido *</label><input id="primerApellido" class="form-control" name="primerApellido" [(ngModel)]="primerApellido" required></div>
           <div class="col-md-6 mb-3"><label class="form-label" for="segundoApellido">Segundo apellido</label><input id="segundoApellido" class="form-control" name="segundoApellido" [(ngModel)]="segundoApellido"></div>
         </div>
-        <div class="mb-3"><label class="form-label" for="puesto">Puesto</label><input id="puesto" class="form-control" name="puesto" [(ngModel)]="puesto"></div>
+        <div class="mb-3"><label class="form-label" for="puesto">Puesto</label><select id="puesto" class="form-select" name="identificadorPuesto" [(ngModel)]="identificadorPuesto" (ngModelChange)="cambiarPuesto()"><option [ngValue]="null">Sin puesto asignado</option><option *ngFor="let puesto of puestos" [ngValue]="puesto.ID_ROL">{{ puesto.NOMBRE }}</option></select></div>
         <div class="mb-3">
           <label class="form-label" for="tipo">Tipo *</label>
-          <select id="tipo" class="form-select" name="tipo" [(ngModel)]="tipo" (ngModelChange)="cambiarTipo()" required>
-            <option *ngFor="let opcion of tiposUsuario" [ngValue]="opcion">{{ opcion }}</option>
-          </select>
+          <input id="tipo" class="form-control" [value]="tipo === 'ESTANDAR' ? 'Usuario de sucursal' : tipo" readonly>
         </div>
         <div *ngIf="tipo === 'ESTANDAR'" class="mb-3">
           <label class="form-label" for="sucursal">Sucursal *</label>

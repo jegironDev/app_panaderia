@@ -52,7 +52,7 @@
             </div>
             <div class="col-md-3 mb-2">
               <label class="form-label">Cantidad</label>
-              <input class="form-control" type="number" name="cantidad_{{ i }}" [(ngModel)]="ingrediente.cantidad" min="0.01" step="0.01" required>
+              <input class="form-control sin-controles-numericos" type="number" name="cantidad_{{ i }}" [(ngModel)]="ingrediente.cantidad" min="0.01" step="0.01" inputmode="decimal" required>
             </div>
             <div class="col-md-2 d-flex align-items-end">
               <button type="button" class="btn btn-outline-danger btn-sm" (click)="quitarIngrediente(i)">Quitar</button>

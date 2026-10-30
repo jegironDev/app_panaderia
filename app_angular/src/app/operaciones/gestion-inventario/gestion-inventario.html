@@ -1,0 +1,11 @@
+<app-barra-navegacion></app-barra-navegacion>
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h1 class="mb-1">Gestión de Inventario</h1><p class="text-muted mb-0">Consulta existencias físicas, reservas y disponibilidad.</p></div>
+    <a class="btn btn-primary" routerLink="/abastecimientos">Registrar abastecimiento</a>
+  </div>
+  <div class="row g-2 mb-3"><div class="col-md-7"><input class="form-control" [(ngModel)]="texto" placeholder="Buscar producto"></div><div class="col-md-3"><select class="form-select" [(ngModel)]="tipo"><option value="">Todos los tipos</option><option value="MAT">Materia prima</option><option value="INS">Insumo</option><option value="PFI">Producto final</option></select></div></div>
+  <div *ngIf="cargando" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  <div *ngIf="!cargando && !error" class="table-responsive card shadow-sm"><table class="table table-hover align-middle mb-0"><thead><tr><th>Producto</th><th>Tipo</th><th>Unidad</th><th>Existencia física</th><th>Reservada</th><th>Disponible</th><th>Mínimo</th><th>Estado</th></tr></thead><tbody><tr *ngFor="let fila of filtradas"><td>{{ fila.NOMBRE }}</td><td>{{ fila.TIPO }}</td><td>{{ fila.ABREVIATURA }}</td><td>{{ fila.CANTIDAD }}</td><td>{{ fila.CANTIDAD_RESERVADA }}</td><td>{{ disponibilidad(fila) }}</td><td>{{ fila.EXISTENCIA_MINIMA }}</td><td><span class="badge" [class.text-bg-danger]="bajoMinimo(fila)" [class.text-bg-success]="!bajoMinimo(fila)">{{ bajoMinimo(fila) ? 'Bajo mínimo' : 'Disponible' }}</span></td></tr><tr *ngIf="!filtradas.length"><td colspan="8" class="text-muted">No hay productos que coincidan con los filtros.</td></tr></tbody></table></div>
+</main>

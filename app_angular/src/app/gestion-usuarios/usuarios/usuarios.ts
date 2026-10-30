@@ -33,4 +33,15 @@ export class Usuarios implements OnInit {
       }
     });
   }
+
+  get activos() { return this.usuarios.filter(usuario => usuario.ESTADO === 'A'); }
+  get deBaja() { return this.usuarios.filter(usuario => usuario.ESTADO !== 'A'); }
+
+  cambiarEstado(usuario: Usuario) {
+    const estado = usuario.ESTADO === 'A' ? 'I' : 'A';
+    this.api.cambiarEstadoUsuario(usuario.ID_USUARIO, estado).subscribe({
+      next: () => { this.ngOnInit(); },
+      error: error => { this.error = error.error?.error || 'No fue posible actualizar el estado del usuario.'; this.cdr.markForCheck(); },
+    });
+  }
 }

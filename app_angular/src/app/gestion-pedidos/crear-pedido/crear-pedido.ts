@@ -53,8 +53,9 @@ export class CrearPedido implements OnInit {
   }
 
   private finalizarCargaCatalogos() { if (this.jornadas.length && this.productos.length) this.cargandoCatalogos = false; this.cdr.markForCheck(); }
-  obtenerPrecio(linea: LineaPedido): number { return this.productos.find(producto => producto.ID_PRODUCTO === linea.identificadorProducto)?.PRECIO || 0; }
-  obtenerSubtotal(linea: LineaPedido): number { return this.obtenerPrecio(linea) * (Number(linea.cantidad) || 0); }
+  obtenerPrecio(linea: LineaPedido): number | null { const precio = this.productos.find(producto => producto.ID_PRODUCTO === linea.identificadorProducto)?.PRECIO; return Number.isFinite(Number(precio)) && Number(precio) > 0 ? Number(precio) : null; }
+  obtenerSubtotal(linea: LineaPedido): number { return (this.obtenerPrecio(linea) || 0) * (Number(linea.cantidad) || 0); }
+  sinPrecio(linea: LineaPedido): boolean { return linea.identificadorProducto !== null && this.obtenerPrecio(linea) === null; }
   get totalEstimado(): number { return this.lineas.reduce((total, linea) => total + this.obtenerSubtotal(linea), 0); }
   private mostrarError(error: any) {
     this.cargandoCatalogos = false;

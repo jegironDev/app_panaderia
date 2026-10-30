@@ -9,11 +9,11 @@
     <h2 class="h5">Productos</h2>
     <div *ngFor="let linea of lineas; let indice = index" class="row g-2 align-items-end mb-2">
       <div class="col-md-4"><label class="form-label">Producto</label><select class="form-select" [(ngModel)]="linea.identificadorProducto" [name]="'producto' + indice"><option [ngValue]="null">Selecciona un producto</option><option *ngFor="let producto of productos" [ngValue]="producto.ID_PRODUCTO">{{ producto.NOMBRE }}</option></select></div>
-      <div class="col-md-2"><label class="form-label">Precio unitario</label><p class="form-control-plaintext mb-0">Q{{ obtenerPrecio(linea) | number:'1.2-2' }}</p></div>
+      <div class="col-md-2"><label class="form-label">Precio unitario</label><p *ngIf="!sinPrecio(linea)" class="form-control-plaintext mb-0">Q{{ obtenerPrecio(linea) | number:'1.2-2' }}</p><p *ngIf="sinPrecio(linea)" class="form-control-plaintext mb-0 text-danger">Sin precio configurado</p></div>
       <div class="col-md-2"><label class="form-label">Cantidad</label><input class="form-control" type="number" min="1" step="1" [(ngModel)]="linea.cantidad" [name]="'cantidad' + indice"></div>
-      <div class="col-md-2"><label class="form-label">Subtotal</label><p class="form-control-plaintext mb-0">Q{{ obtenerSubtotal(linea) | number:'1.2-2' }}</p></div>
+      <div class="col-md-2"><label class="form-label">Subtotal</label><p *ngIf="!sinPrecio(linea)" class="form-control-plaintext mb-0">Q{{ obtenerSubtotal(linea) | number:'1.2-2' }}</p><p *ngIf="sinPrecio(linea)" class="form-control-plaintext mb-0 text-muted">—</p></div>
       <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100" (click)="quitarLinea(indice)" [disabled]="lineas.length === 1">Quitar</button></div>
     </div>
     <button type="button" class="btn btn-outline-primary mt-2" (click)="agregarLinea()">Agregar producto</button>
-  </div><div class="card-footer d-flex justify-content-between align-items-center"><strong>Total estimado: Q{{ totalEstimado | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button><button type="submit" class="btn btn-primary" [disabled]="guardando">{{ guardando ? 'Registrando...' : 'Registrar pedido' }}</button></div></div></form>
+  </div><div class="card-footer d-flex justify-content-between align-items-center"><strong>Total: Q{{ totalEstimado | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button><button type="submit" class="btn btn-primary" [disabled]="guardando">{{ guardando ? 'Registrando...' : 'Registrar pedido' }}</button></div></div></form>
 </div></div></main>

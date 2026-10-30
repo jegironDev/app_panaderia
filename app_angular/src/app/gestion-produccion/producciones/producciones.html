@@ -1,0 +1,12 @@
+<app-barra-navegacion></app-barra-navegacion>
+<main class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-4"><h1 class="mb-0">Producciones por pedido</h1><a routerLink="/gestion-produccion" class="btn btn-secondary">Volver</a></div>
+  <div class="row g-2 mb-3"><div class="col-sm-5"><label class="form-label" for="estado">Filtrar por estado</label><select id="estado" class="form-select" [(ngModel)]="estado" name="estado" (change)="cargar()"><option value="">Todos</option><option *ngFor="let opcion of estados" [value]="opcion">{{ etiquetaEstado(opcion) }}</option></select></div></div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  <div *ngIf="cargando" class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div></div>
+  <div *ngIf="!cargando" class="card shadow-sm"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Pedido</th><th>Sucursal</th><th>Estado de producción</th><th>Estado del pedido</th><th>Producciones</th><th></th></tr></thead><tbody>
+    <tr *ngFor="let grupo of porPedido"><td>#{{ grupo.identificadorPedido }}</td><td>{{ grupo.sucursal || 'Dato no disponible' }}</td><td><span class="badge text-bg-secondary">{{ grupo.estadoVisual }}</span></td><td><span class="badge text-bg-info">{{ grupo.estadoPedido || 'Dato no disponible' }}</span></td><td>{{ grupo.producciones.length }}</td><td><a class="btn btn-sm btn-primary" [routerLink]="['/producciones/pedidos', grupo.identificadorPedido]">Ver detalle</a></td></tr>
+    <tr *ngIf="!porPedido.length"><td colspan="6" class="text-center text-muted py-4">No hay producciones asociadas a pedidos para los filtros seleccionados.</td></tr>
+  </tbody></table></div></div>
+  <section *ngIf="sinPedido.length" class="card shadow-sm mt-4"><div class="card-body"><h2 class="h5">Producciones sin pedido asociado</h2><p class="text-muted">Se muestran por separado para no atribuirles un pedido inexistente.</p><ul class="mb-0"><li *ngFor="let produccion of sinPedido">Producción #{{ produccion.ID_PRODUCCION }} — {{ produccion.PRODUCTO }} ({{ etiquetaEstado(produccion.ESTADO) }}) <a [routerLink]="['/detalle-produccion', produccion.ID_PRODUCCION]">Ver detalle</a></li></ul></div></section>
+</main>

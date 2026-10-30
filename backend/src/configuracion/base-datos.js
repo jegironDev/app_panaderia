@@ -4,7 +4,7 @@ let grupoConexiones;
 
 // Lee y valida la configuración privada sin incluir sus valores en errores o respuestas.
 function obtenerConfiguracionBaseDatos() {
-  const variablesRequeridas = ['BD_USUARIO', 'BD_CONTRASENA', 'BD_CADENA_CONEXION'];
+  const variablesRequeridas = ['BD_USUARIO_NUEVO', 'BD_CONTRASENA_NUEVO', 'BD_CADENA_CONEXION'];
   const variablesAusentes = variablesRequeridas.filter(nombre => !process.env[nombre]);
 
   if (variablesAusentes.length) {
@@ -14,8 +14,8 @@ function obtenerConfiguracionBaseDatos() {
   }
 
   return {
-    user: process.env.BD_USUARIO,
-    password: process.env.BD_CONTRASENA,
+    user: process.env.BD_USUARIO_NUEVO,
+    password: process.env.BD_CONTRASENA_NUEVO,
     connectString: process.env.BD_CADENA_CONEXION,
     poolMin: 0,
     poolMax: 4,
@@ -27,6 +27,26 @@ function obtenerConfiguracionBaseDatos() {
 export async function crearGrupoConexiones() {
   if (!grupoConexiones) {
     grupoConexiones = await oracledb.createPool(obtenerConfiguracionBaseDatos());
+    const conexion = await grupoConexiones.getConnection();
+    try {
+      const resultado = await conexion.execute(
+        `SELECT SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AS ESQUEMA,
+                SYS_CONTEXT('USERENV', 'CON_NAME') AS PDB
+           FROM DUAL`,
+        [],
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
+      );
+      const { ESQUEMA: esquema, PDB: pdb } = resultado.rows[0];
+      if (esquema !== 'DB_PANADERIA' || pdb !== 'XEPDB1') {
+        throw new Error('El pool operativo no apunta a DB_PANADERIA en XEPDB1');
+      }
+    } catch (error) {
+      await grupoConexiones.close(0);
+      grupoConexiones = undefined;
+      throw error;
+    } finally {
+      await conexion.close();
+    }
   }
 
   return grupoConexiones;

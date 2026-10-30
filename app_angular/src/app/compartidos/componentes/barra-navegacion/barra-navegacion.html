@@ -3,8 +3,18 @@
     <a class="navbar-brand fw-bold" routerLink="/inicio">Panadería San Carlos</a>
     <div class="d-flex">
       <a *ngIf="mostrarUsuarios()" class="nav-link" routerLink="/usuarios">Usuarios</a>
+      <a *ngIf="mostrarPuestos()" class="nav-link ms-3" routerLink="/puestos">Puestos</a>
+      <a *ngIf="mostrarProductos()" class="nav-link ms-3" routerLink="/productos">Productos</a>
       <a *ngIf="mostrarPedidos()" class="nav-link ms-3" routerLink="/pedidos">Pedidos</a>
       <a *ngIf="mostrarRecetas()" class="nav-link ms-3" routerLink="/recetas">Recetas</a>
+      <a *ngIf="mostrarProduccion()" class="nav-link ms-3" routerLink="/producciones">Producción</a>
+      <a *ngIf="mostrarInventario()" class="nav-link ms-3" routerLink="/gestion-inventario">Inventario</a>
+      <a *ngIf="mostrarDespachos()" class="nav-link ms-3" routerLink="/despachos">Despachos</a>
+      <a *ngIf="mostrarRutas()" class="nav-link ms-3" routerLink="/rutas">Rutas</a>
+      <a *ngIf="mostrarReordenamientos()" class="nav-link ms-3" routerLink="/despachos/reordenamientos">Cambios de posición</a>
+      <a *ngIf="tieneEntregas()" class="nav-link ms-3" routerLink="/mi-ruta">Mi ruta</a>
+      <a *ngIf="mostrarCancelaciones()" class="nav-link ms-3" routerLink="/cancelaciones">Cancelaciones</a>
+      <a *ngIf="mostrarBitacoras()" class="nav-link ms-3" routerLink="/bitacoras">Bitácoras</a>
       <button class="btn btn-outline-danger btn-sm ms-3" (click)="cerrarSesion()">Cerrar sesión</button>
     </div>
   </div>

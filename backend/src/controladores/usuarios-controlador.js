@@ -5,8 +5,8 @@ export async function listarUsuarios(solicitud, respuesta) {
   respuesta.json(await consultarUsuarios());
 }
 
-const camposCreacion = new Set(['primerNombre','segundoNombre','primerApellido','segundoApellido','puesto','tipo','identificadorSucursal','contrasena']);
-const camposEdicion = new Set(['primerNombre','segundoNombre','primerApellido','segundoApellido','puesto','tipo','identificadorSucursal']);
+const camposCreacion = new Set(['primerNombre','segundoNombre','primerApellido','segundoApellido','puesto','identificadorPuesto','tipo','identificadorSucursal','contrasena']);
+const camposEdicion = new Set(['primerNombre','segundoNombre','primerApellido','segundoApellido','puesto','identificadorPuesto','tipo','identificadorSucursal']);
 const longitudes = { primerNombre: 50, segundoNombre: 50, primerApellido: 50, segundoApellido: 50, puesto: 60 };
 
 export async function registrarUsuario(solicitud, respuesta) {
@@ -36,6 +36,7 @@ function validarDatosUsuario(datos, camposPermitidos, incluirContrasena) {
     primerApellido: validarTexto(datos.primerApellido, 'primerApellido', true),
     segundoApellido: validarTexto(datos.segundoApellido, 'segundoApellido'),
     puesto: validarTexto(datos.puesto, 'puesto'),
+    identificadorPuesto: validarPuesto(datos.identificadorPuesto),
     tipo: validarTipo(datos.tipo),
     identificadorSucursal: validarSucursal(datos.identificadorSucursal),
   };
@@ -47,6 +48,13 @@ function validarDatosUsuario(datos, camposPermitidos, incluirContrasena) {
     usuario.contrasena = datos.contrasena;
   }
   return usuario;
+}
+
+function validarPuesto(valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
+  const identificador = Number(valor);
+  if (!Number.isInteger(identificador) || identificador <= 0) throw crearError('El identificador del puesto no es válido');
+  return identificador;
 }
 
 function validarTexto(valor, campo, obligatorio = false) {

@@ -2,7 +2,7 @@ import { Component, ChangeDetectorRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { ApiService, CrearUsuarioRequest, Sucursal } from '../../api.service';
+import { ApiService, CrearUsuarioRequest, Puesto, Sucursal } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
 
 @Component({
@@ -16,7 +16,8 @@ export class CrearUsuario {
   segundoNombre: string | null = null;
   primerApellido = '';
   segundoApellido: string | null = null;
-  puesto: string | null = null;
+  identificadorPuesto: number | null = null;
+  puestos: Puesto[] = [];
   tipo: 'ADMIN' | 'OPERATIVO' | 'ESTANDAR' = 'ESTANDAR';
   identificadorSucursal: number | null = null;
   sucursales: Sucursal[] = [];
@@ -31,6 +32,7 @@ export class CrearUsuario {
 
   ngOnInit() {
     this.cargarSucursales();
+    this.api.puestosAsignables().subscribe({ next: puestos => { this.puestos = puestos; this.cdr.markForCheck(); }, error: () => { this.error = 'No fue posible cargar los puestos.'; this.cdr.markForCheck(); } });
   }
 
   cargarSucursales() {
@@ -53,7 +55,6 @@ export class CrearUsuario {
     if (valor === '' || valor === null || valor === undefined) {
       if (campo === 'segundoNombre') this.segundoNombre = null;
       if (campo === 'segundoApellido') this.segundoApellido = null;
-      if (campo === 'puesto') this.puesto = null;
     }
   }
 
@@ -61,6 +62,13 @@ export class CrearUsuario {
     if (this.tipo === 'ADMIN' || this.tipo === 'OPERATIVO') {
       this.identificadorSucursal = null;
     }
+  }
+
+  onPuestoChange() {
+    const puesto = this.puestos.find(item => item.ID_ROL === this.identificadorPuesto);
+    if (!puesto) return;
+    this.tipo = puesto.NOMBRE === 'ADMINISTRADOR' ? 'ADMIN' : puesto.NOMBRE === 'USUARIO_SUCURSAL' ? 'ESTANDAR' : 'OPERATIVO';
+    this.onTipoChange();
   }
 
   guardarUsuario() {
@@ -94,9 +102,7 @@ export class CrearUsuario {
       datos.segundoApellido = this.segundoApellido;
     }
 
-    if (this.puesto !== null && this.puesto !== '') {
-      datos.puesto = this.puesto;
-    }
+    datos.identificadorPuesto = this.identificadorPuesto;
 
     if (this.tipo === 'ESTANDAR' && this.identificadorSucursal !== null) {
       datos.identificadorSucursal = this.identificadorSucursal;

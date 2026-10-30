@@ -1,1 +1,5 @@
 
+/* Las cantidades admiten decimales; se evita que los controles nativos sugieran pasos no deseados. */
+.sin-controles-numericos::-webkit-outer-spin-button,
+.sin-controles-numericos::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sin-controles-numericos { -moz-appearance: textfield; appearance: textfield; }
