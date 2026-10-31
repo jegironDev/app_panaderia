@@ -83,3 +83,19 @@ export async function consultarUnidadesMedidaActivas(conexionExterna = null) {
     if (!conexionExterna) await conexion.close();
   }
 }
+
+// La vista contiene el saldo físico, reservado y disponible ya calculado por Oracle.
+export async function consultarStockDisponible() {
+  const conexion = await obtenerConexion();
+  try {
+    const resultado = await conexion.execute(
+      `SELECT ID_PRODUCTO, NOMBRE, TIPO, UNIDAD AS ABREVIATURA,
+              CANTIDAD, CANTIDAD_RESERVADA, DISPONIBLE, EXISTENCIA_MINIMA, ALERTA
+         FROM VW_STOCK_DISPONIBLE
+        ORDER BY NOMBRE, ID_PRODUCTO`,
+      [],
+      { outFormat: oracledb.OUT_FORMAT_OBJECT },
+    );
+    return resultado.rows;
+  } finally { await conexion.close(); }
+}

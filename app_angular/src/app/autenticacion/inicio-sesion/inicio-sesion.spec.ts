@@ -3,7 +3,7 @@ import { of, Subject, throwError } from 'rxjs';
 import { InicioSesion } from './inicio-sesion';
 
 function crearComponente(respuesta: any) {
-  const api = { iniciarSesion: vi.fn(() => respuesta), guardarSesion: vi.fn() };
+  const api = { iniciarSesion: vi.fn(() => respuesta), guardarSesion: vi.fn(), esPilotoSesion: vi.fn(() => false) };
   const router = { navigateByUrl: vi.fn() };
   const detectorCambios = { markForCheck: vi.fn() };
   return { componente: new InicioSesion(api as any, router as any, detectorCambios as any), api, router, detectorCambios };
@@ -63,5 +63,15 @@ describe('InicioSesion', () => {
     expect(api.iniciarSesion).toHaveBeenCalledWith({ usuario: 'usuario', contrasena: 'ClaveExacta' });
     expect(api.guardarSesion).toHaveBeenCalledWith(respuesta);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/inicio');
+  });
+
+  it('dirige al piloto a su ruta después de guardar una sesión de piloto', () => {
+    const respuesta = { usuario: { permisos: [] } };
+    const { componente, api, router } = crearComponente(of(respuesta));
+    api.esPilotoSesion.mockReturnValue(true);
+    componente.usuario = 'piloto';
+    componente.contrasena = 'ClaveExacta';
+    componente.ingresar();
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/mi-ruta');
   });
 });

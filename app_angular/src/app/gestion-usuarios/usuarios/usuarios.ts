@@ -37,6 +37,11 @@ export class Usuarios implements OnInit {
   get activos() { return this.usuarios.filter(usuario => usuario.ESTADO === 'A'); }
   get deBaja() { return this.usuarios.filter(usuario => usuario.ESTADO !== 'A'); }
 
+  formatoPuesto(puesto: string | null | undefined): string {
+    if (!puesto) return 'Sin puesto asignado';
+    return puesto.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+
   cambiarEstado(usuario: Usuario) {
     const estado = usuario.ESTADO === 'A' ? 'I' : 'A';
     this.api.cambiarEstadoUsuario(usuario.ID_USUARIO, estado).subscribe({

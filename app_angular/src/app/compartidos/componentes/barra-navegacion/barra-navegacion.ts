@@ -24,18 +24,22 @@ export class BarraNavegacion {
       }
     });
   }
+  esPiloto(): boolean { return this.api.esPilotoSesion(); }
+  rutaMarca(): string { return this.esPiloto() ? '/mi-ruta' : '/inicio'; }
 
   mostrarUsuarios(): boolean { return this.api.tieneAlgunPermiso(['VER_USUARIOS']); }
   mostrarPuestos(): boolean { return this.api.tienePermiso('GESTIONAR_PUESTOS'); }
   mostrarProductos(): boolean { return this.api.tienePermiso('GESTIONAR_PRODUCTOS'); }
-  mostrarPedidos(): boolean { return this.api.tieneAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']); }
   mostrarRecetas(): boolean { return this.api.tieneAlgunPermiso(['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS']); }
+  mostrarPedidos(): boolean { return this.api.tieneAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']); }
   mostrarProduccion(): boolean { return this.api.tieneAlgunPermiso(['AUTORIZAR_PRODUCCION', 'INICIAR_PRODUCCION', 'CONFIRMAR_PRODUCCION']); }
   mostrarInventario(): boolean { return this.api.tieneAlgunPermiso(['VER_INVENTARIO', 'REGISTRAR_ENTRADA_INVENTARIO']); }
+  mostrarAbastecimientos(): boolean { return this.api.tieneAlgunPermiso(['VER_INVENTARIO', 'REGISTRAR_ENTRADA_INVENTARIO']); }
+  mostrarGestionInventario(): boolean { return this.api.tienePermiso('VER_INVENTARIO'); }
   mostrarDespachos(): boolean { return this.api.tienePermiso('PREPARAR_DESPACHOS'); }
   mostrarRutas(): boolean { return this.api.tienePermiso('GESTIONAR_RUTAS'); }
   mostrarReordenamientos(): boolean { return this.api.tienePermiso('RESOLVER_REORDENAMIENTOS'); }
-  tieneEntregas(): boolean { return this.api.tienePermiso('CONSULTAR_MI_RUTA'); }
-  mostrarCancelaciones(): boolean { return this.api.tienePermiso('RESOLVER_CANCELACIONES_PEDIDOS'); }
+  tieneEntregas(): boolean { return this.esPiloto() && this.api.tienePermiso('CONSULTAR_MI_RUTA'); }
+  mostrarCancelaciones(): boolean { return this.api.tieneAlgunPermiso(['SOLICITAR_CANCELACION_PEDIDOS', 'RESOLVER_CANCELACIONES_PEDIDOS']); }
   mostrarBitacoras(): boolean { return this.api.tienePermiso('VER_REPORTES'); }
 }

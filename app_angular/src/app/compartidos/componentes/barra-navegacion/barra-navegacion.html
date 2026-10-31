@@ -1,21 +1,49 @@
-<nav class="navbar navbar-light bg-white shadow-sm mb-4">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
   <div class="container">
-    <a class="navbar-brand fw-bold" routerLink="/inicio">Panadería San Carlos</a>
-    <div class="d-flex">
-      <a *ngIf="mostrarUsuarios()" class="nav-link" routerLink="/usuarios">Usuarios</a>
-      <a *ngIf="mostrarPuestos()" class="nav-link ms-3" routerLink="/puestos">Puestos</a>
-      <a *ngIf="mostrarProductos()" class="nav-link ms-3" routerLink="/productos">Productos</a>
-      <a *ngIf="mostrarPedidos()" class="nav-link ms-3" routerLink="/pedidos">Pedidos</a>
-      <a *ngIf="mostrarRecetas()" class="nav-link ms-3" routerLink="/recetas">Recetas</a>
-      <a *ngIf="mostrarProduccion()" class="nav-link ms-3" routerLink="/producciones">Producción</a>
-      <a *ngIf="mostrarInventario()" class="nav-link ms-3" routerLink="/gestion-inventario">Inventario</a>
-      <a *ngIf="mostrarDespachos()" class="nav-link ms-3" routerLink="/despachos">Despachos</a>
-      <a *ngIf="mostrarRutas()" class="nav-link ms-3" routerLink="/rutas">Rutas</a>
-      <a *ngIf="mostrarReordenamientos()" class="nav-link ms-3" routerLink="/despachos/reordenamientos">Cambios de posición</a>
-      <a *ngIf="tieneEntregas()" class="nav-link ms-3" routerLink="/mi-ruta">Mi ruta</a>
-      <a *ngIf="mostrarCancelaciones()" class="nav-link ms-3" routerLink="/cancelaciones">Cancelaciones</a>
-      <a *ngIf="mostrarBitacoras()" class="nav-link ms-3" routerLink="/bitacoras">Bitácoras</a>
-      <button class="btn btn-outline-danger btn-sm ms-3" (click)="cerrarSesion()">Cerrar sesión</button>
+    <a class="navbar-brand fw-bold" [routerLink]="rutaMarca()">Panadería San Carlos</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto" *ngIf="!esPiloto()">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/inicio">Inicio</a>
+        </li>
+
+        <li class="nav-item dropdown" *ngIf="mostrarUsuarios() || mostrarPuestos() || mostrarProductos() || mostrarRecetas()">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Administración</a>
+          <ul class="dropdown-menu">
+            <li *ngIf="mostrarUsuarios()"><a class="dropdown-item" routerLink="/usuarios">Usuarios</a></li>
+            <li *ngIf="mostrarPuestos()"><a class="dropdown-item" routerLink="/puestos">Puestos</a></li>
+            <li *ngIf="mostrarProductos()"><a class="dropdown-item" routerLink="/productos">Productos terminados</a></li>
+            <li *ngIf="mostrarProductos()"><a class="dropdown-item" routerLink="/materias-primas-insumos">Materias primas e insumos</a></li>
+            <li *ngIf="mostrarGestionInventario()"><a class="dropdown-item" routerLink="/gestion-inventario">Gestión de inventario</a></li>
+            <li *ngIf="mostrarRecetas()"><a class="dropdown-item" routerLink="/recetas">Recetas</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown" *ngIf="mostrarPedidos() || mostrarProduccion()">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Pedidos y producción</a>
+          <ul class="dropdown-menu">
+            <li *ngIf="mostrarPedidos()"><a class="dropdown-item" routerLink="/pedidos">Pedidos</a></li>
+            <li *ngIf="mostrarCancelaciones()"><a class="dropdown-item" routerLink="/cancelaciones">Cancelaciones</a></li>
+            <li *ngIf="mostrarProduccion()"><a class="dropdown-item" routerLink="/gestion-produccion">Gestionar producciones</a></li>
+            <li *ngIf="mostrarProduccion()"><a class="dropdown-item" routerLink="/producciones/listado">Historial de producciones</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item dropdown" *ngIf="mostrarDespachos() || mostrarRutas() || mostrarReordenamientos() || tieneEntregas()">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Distribución</a>
+          <ul class="dropdown-menu">
+            <li *ngIf="mostrarDespachos()"><a class="dropdown-item" routerLink="/despachos">Despachos</a></li>
+            <li *ngIf="mostrarRutas()"><a class="dropdown-item" routerLink="/rutas">Rutas</a></li>
+            <li *ngIf="mostrarReordenamientos()"><a class="dropdown-item" routerLink="/despachos/reordenamientos">Solicitudes de reordenamiento</a></li>
+          </ul>
+        </li>
+
+        <li class="nav-item" *ngIf="mostrarBitacoras()"><a class="nav-link" routerLink="/bitacoras">Bitácoras</a></li>
+      </ul>
+      <button class="btn btn-danger ms-auto" (click)="cerrarSesion()">Cerrar sesión</button>
     </div>
   </div>
 </nav>

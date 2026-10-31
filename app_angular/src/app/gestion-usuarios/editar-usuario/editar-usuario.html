@@ -15,19 +15,19 @@
           <input id="usuario" class="form-control" [value]="usuario" readonly>
         </div>
         <div class="row">
-          <div class="col-md-6 mb-3"><label class="form-label" for="primerNombre">Primer nombre *</label><input id="primerNombre" class="form-control" name="primerNombre" [(ngModel)]="primerNombre" required></div>
-          <div class="col-md-6 mb-3"><label class="form-label" for="segundoNombre">Segundo nombre</label><input id="segundoNombre" class="form-control" name="segundoNombre" [(ngModel)]="segundoNombre"></div>
-          <div class="col-md-6 mb-3"><label class="form-label" for="primerApellido">Primer apellido *</label><input id="primerApellido" class="form-control" name="primerApellido" [(ngModel)]="primerApellido" required></div>
-          <div class="col-md-6 mb-3"><label class="form-label" for="segundoApellido">Segundo apellido</label><input id="segundoApellido" class="form-control" name="segundoApellido" [(ngModel)]="segundoApellido"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="primerNombre">Primer nombre *</label><input id="primerNombre" class="form-control" name="primerNombre" [(ngModel)]="primerNombre" (ngModelChange)="marcarCambios()" required></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="segundoNombre">Segundo nombre</label><input id="segundoNombre" class="form-control" name="segundoNombre" [(ngModel)]="segundoNombre" (ngModelChange)="marcarCambios()"></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="primerApellido">Primer apellido *</label><input id="primerApellido" class="form-control" name="primerApellido" [(ngModel)]="primerApellido" (ngModelChange)="marcarCambios()" required></div>
+          <div class="col-md-6 mb-3"><label class="form-label" for="segundoApellido">Segundo apellido</label><input id="segundoApellido" class="form-control" name="segundoApellido" [(ngModel)]="segundoApellido" (ngModelChange)="marcarCambios()"></div>
         </div>
-        <div class="mb-3"><label class="form-label" for="puesto">Puesto</label><select id="puesto" class="form-select" name="identificadorPuesto" [(ngModel)]="identificadorPuesto" (ngModelChange)="cambiarPuesto()"><option [ngValue]="null">Sin puesto asignado</option><option *ngFor="let puesto of puestos" [ngValue]="puesto.ID_ROL">{{ puesto.NOMBRE }}</option></select></div>
+        <div class="mb-3"><label class="form-label" for="puesto">Puesto</label><select id="puesto" class="form-select" name="identificadorPuesto" [(ngModel)]="identificadorPuesto" (ngModelChange)="cambiarPuesto(); marcarCambios()"><option [ngValue]="null">Sin puesto asignado</option><option *ngFor="let puesto of puestos" [ngValue]="puesto.ID_ROL">{{ puesto.NOMBRE }}</option></select></div>
         <div class="mb-3">
           <label class="form-label" for="tipo">Tipo *</label>
           <input id="tipo" class="form-control" [value]="tipo === 'ESTANDAR' ? 'Usuario de sucursal' : tipo" readonly>
         </div>
         <div *ngIf="tipo === 'ESTANDAR'" class="mb-3">
           <label class="form-label" for="sucursal">Sucursal *</label>
-          <select id="sucursal" class="form-select" name="identificadorSucursal" [(ngModel)]="identificadorSucursal" [disabled]="cargandoSucursales" required>
+          <select id="sucursal" class="form-select" name="identificadorSucursal" [(ngModel)]="identificadorSucursal" (ngModelChange)="marcarCambios()" [disabled]="cargandoSucursales" required>
             <option [ngValue]="null">Seleccione una sucursal</option>
             <option *ngFor="let sucursal of sucursales" [ngValue]="sucursal.ID_SUCURSAL">{{ sucursal.ID_SUCURSAL }} - {{ sucursal.NOMBRE }}</option>
           </select>
@@ -37,9 +37,13 @@
         <div *ngIf="exito" class="alert alert-success">Usuario actualizado correctamente.</div>
         <div class="d-flex gap-2">
           <button type="submit" class="btn btn-primary">Guardar cambios</button>
-          <a class="btn btn-secondary" routerLink="/usuarios">Volver al listado</a>
+          <button type="button" class="btn btn-secondary" (click)="solicitarSalida()">{{ hayCambios ? 'Cancelar' : 'Volver al listado' }}</button>
         </div>
       </form>
     </div>
+  </div>
+
+  <div *ngIf="mostrarConfirmacionSalida" class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,.5)">
+    <div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h2 class="h5 mb-0">Descartar cambios</h2></div><div class="modal-body">Hay cambios sin guardar. ¿Desea descartarlos y volver al listado?</div><div class="modal-footer"><button type="button" class="btn btn-secondary" (click)="cancelarSalida()">Continuar editando</button><button type="button" class="btn btn-danger" (click)="confirmarSalida()">Descartar cambios</button></div></div></div>
   </div>
 </main>

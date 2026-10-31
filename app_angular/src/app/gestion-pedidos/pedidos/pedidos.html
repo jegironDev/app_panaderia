@@ -10,7 +10,7 @@
     <div class="table-responsive"><table class="table table-hover align-middle mb-0">
       <thead><tr><th>Pedido</th><th>Sucursal</th><th>Jornada</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
       <tbody>
-        <tr *ngFor="let pedido of pedidos"><td>#{{ pedido.ID_PEDIDO }}</td><td>{{ pedido.SUCURSAL }}</td><td>{{ pedido.JORNADA }}</td><td><span class="badge text-bg-secondary">{{ pedido.ESTADO }}</span></td><td>{{ pedido.FECHA_PEDIDO | date:'short' }}</td><td><a [routerLink]="['/pedidos', pedido.ID_PEDIDO]" class="btn btn-sm btn-outline-primary">Ver detalle</a></td></tr>
+        <tr *ngFor="let pedido of pedidos"><td>#{{ pedido.ID_PEDIDO }}</td><td>{{ pedido.SUCURSAL }}</td><td>{{ pedido.JORNADA }}</td><td><span class="badge" [class.text-bg-warning]="pedido.ESTADO==='PENDIENTE'||pedido.ESTADO==='EN_PRODUCCION'||pedido.ESTADO==='DESPACHADO'" [class.text-bg-success]="pedido.ESTADO==='APROBADO_PARA_PRODUCCION'||pedido.ESTADO==='PRODUCIDO'||pedido.ESTADO==='ENTREGADO'" [class.text-bg-danger]="pedido.ESTADO==='CANCELADO'||pedido.ESTADO==='CANCELADA'">{{ pedido.ESTADO }}</span></td><td>{{ pedido.FECHA_PEDIDO | date:'short' }}</td><td><a [routerLink]="['/pedidos', pedido.ID_PEDIDO]" class="btn btn-sm btn-primary">Ver detalle</a></td></tr>
         <tr *ngIf="!pedidos.length"><td colspan="6" class="text-center text-muted py-4">No hay pedidos disponibles.</td></tr>
       </tbody>
     </table></div>

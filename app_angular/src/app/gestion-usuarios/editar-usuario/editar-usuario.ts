@@ -1,13 +1,13 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService, EditarUsuarioRequest, Puesto, Sucursal, TipoUsuario, Usuario } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BarraNavegacion],
+  imports: [CommonModule, FormsModule, BarraNavegacion],
   templateUrl: './editar-usuario.html',
 })
 export class EditarUsuario implements OnInit {
@@ -26,6 +26,9 @@ export class EditarUsuario implements OnInit {
   exito = false;
   cargando = true;
   cargandoSucursales = true;
+  hayCambios = false;
+  mostrarConfirmacionSalida = false;
+  private estadoGuardado = '';
 
   readonly tiposUsuario: TipoUsuario[] = ['ADMIN', 'OPERATIVO', 'ESTANDAR'];
 
@@ -53,6 +56,7 @@ export class EditarUsuario implements OnInit {
     this.api.usuarioPorId(this.idUsuario).subscribe({
       next: usuario => {
         this.asignarUsuario(usuario);
+        this.guardarEstadoActual();
         this.cargando = false;
         this.detectorCambios.markForCheck();
       },
@@ -115,6 +119,7 @@ export class EditarUsuario implements OnInit {
     this.api.editarUsuario(this.idUsuario, datos).subscribe({
       next: usuario => {
         this.asignarUsuario(usuario);
+        this.guardarEstadoActual();
         this.exito = true;
         this.detectorCambios.markForCheck();
       },
@@ -135,6 +140,52 @@ export class EditarUsuario implements OnInit {
     this.asignarPuestoDesdeTexto();
     this.tipo = usuario.TIPO;
     this.identificadorSucursal = usuario.ID_SUCURSAL;
+  }
+
+  marcarCambios() {
+    this.hayCambios = this.serializarFormulario() !== this.estadoGuardado;
+    this.exito = false;
+  }
+
+  solicitarSalida() {
+    if (this.hayCambios) {
+      this.mostrarConfirmacionSalida = true;
+      this.detectorCambios.markForCheck();
+      return;
+    }
+    this.router.navigate(['/usuarios']);
+  }
+
+  cancelarSalida() {
+    this.mostrarConfirmacionSalida = false;
+    this.detectorCambios.markForCheck();
+  }
+
+  confirmarSalida() {
+    this.hayCambios = false;
+    this.mostrarConfirmacionSalida = false;
+    this.router.navigate(['/usuarios']);
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  advertirSalidaNavegador(evento: BeforeUnloadEvent) {
+    if (!this.hayCambios) return;
+    evento.preventDefault();
+    evento.returnValue = true;
+  }
+
+  private guardarEstadoActual() {
+    this.estadoGuardado = this.serializarFormulario();
+    this.hayCambios = false;
+  }
+
+  private serializarFormulario() {
+    return JSON.stringify({
+      primerNombre: this.primerNombre.trim(), segundoNombre: this.normalizarOpcional(this.segundoNombre),
+      primerApellido: this.primerApellido.trim(), segundoApellido: this.normalizarOpcional(this.segundoApellido),
+      identificadorPuesto: this.identificadorPuesto, tipo: this.tipo,
+      identificadorSucursal: this.tipo === 'ESTANDAR' ? this.identificadorSucursal : null,
+    });
   }
 
   private puestoTexto: string | null = null;

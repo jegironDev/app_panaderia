@@ -73,9 +73,9 @@ import {
 import {
   crearAbastecimiento, crearDespachos, crearRuta, dashboard, editarRuta, entregar,
   estadoRuta, listarAbastecimientos, listarCancelaciones, listarDespachos, listarRutas,
-  miRuta, resolverCancelacion,
+  miRuta, resolverCancelacion, actualizarMinimoInventario,
 } from "../controladores/operaciones-controlador.js";
-import { pedidosDisponibles as pedidosDisponiblesDistribucion, pilotos as pilotosDistribucion, crearEjecucion, ejecuciones as ejecucionesDistribucion, detalleEjecucion as detalleEjecucionDistribucion, miRuta as miRutaDistribucion, confirmarEntrega as confirmarEntregaDistribucion, solicitarCambio, solicitudesCambio, misSolicitudesCambio, resolverCambio, bitacoraGeneral } from '../controladores/distribucion-controlador.js';
+import { pedidosDisponibles as pedidosDisponiblesDistribucion, pilotos as pilotosDistribucion, crearEjecucion, ejecuciones as ejecucionesDistribucion, detalleEjecucion as detalleEjecucionDistribucion, miRuta as miRutaDistribucion, confirmarEntrega as confirmarEntregaDistribucion, solicitarCambio, solicitudesCambio, misSolicitudesCambio, resolverCambio, bitacoraGeneral, fuentesBitacora, usuariosDeBitacora, bitacoraPorTipo } from '../controladores/distribucion-controlador.js';
 import {
   requerirAlgunPermiso,
   requerirPermiso,
@@ -121,8 +121,12 @@ rutasApi.get('/piloto/solicitudes-reordenamiento', manejadorAsincrono(requerirSe
 rutasApi.get('/reordenamientos', manejadorAsincrono(requerirSesion), requerirPermiso('RESOLVER_REORDENAMIENTOS'), manejadorAsincrono(solicitudesCambio));
 rutasApi.post('/reordenamientos/:id/resolver', manejadorAsincrono(requerirSesion), requerirPermiso('RESOLVER_REORDENAMIENTOS'), manejadorAsincrono(resolverCambio));
 rutasApi.get('/bitacoras', manejadorAsincrono(requerirSesion), requerirPermiso('VER_REPORTES'), manejadorAsincrono(bitacoraGeneral));
+rutasApi.get('/bitacoras/fuentes', manejadorAsincrono(requerirSesion), requerirPermiso('VER_REPORTES'), manejadorAsincrono(fuentesBitacora));
+rutasApi.get('/bitacoras/usuarios', manejadorAsincrono(requerirSesion), requerirPermiso('VER_REPORTES'), manejadorAsincrono(usuariosDeBitacora));
+rutasApi.get('/bitacoras/:tipo', manejadorAsincrono(requerirSesion), requerirPermiso('VER_REPORTES'), manejadorAsincrono(bitacoraPorTipo));
 rutasApi.get('/abastecimientos', manejadorAsincrono(requerirSesion), requerirPermiso('VER_INVENTARIO'), manejadorAsincrono(listarAbastecimientos));
 rutasApi.post('/abastecimientos', manejadorAsincrono(requerirSesion), requerirPermiso('REGISTRAR_ENTRADA_INVENTARIO'), manejadorAsincrono(crearAbastecimiento));
+rutasApi.patch('/inventario/:id/minimo', manejadorAsincrono(requerirSesion), requerirPermiso('REGISTRAR_ENTRADA_INVENTARIO'), manejadorAsincrono(actualizarMinimoInventario));
 rutasApi.get('/rutas', manejadorAsincrono(requerirSesion), requerirAlgunPermiso(['GESTIONAR_RUTAS', 'CONSULTAR_RUTAS']), manejadorAsincrono(listarRutas));
 rutasApi.post('/rutas', manejadorAsincrono(requerirSesion), requerirPermiso('GESTIONAR_RUTAS'), manejadorAsincrono(crearRuta));
 rutasApi.put('/rutas/:id', manejadorAsincrono(requerirSesion), requerirPermiso('GESTIONAR_RUTAS'), manejadorAsincrono(editarRuta));

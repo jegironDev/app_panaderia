@@ -39,10 +39,10 @@
             <td>{{ obtenerEstado(receta.ESTADO) }}</td>
             <td>{{ receta.INGREDIENTES }}</td>
             <td>
-              <a [routerLink]="['/recetas', receta.ID_RECETA]" class="btn btn-sm btn-outline-primary me-2">Ver detalle</a>
-              <a *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" [routerLink]="['/recetas', receta.ID_RECETA, 'editar']" class="btn btn-sm btn-outline-secondary me-2">Editar</a>
-              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" class="btn btn-sm btn-outline-danger" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Desactivar</button>
-              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'I'" class="btn btn-sm btn-outline-success" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Activar</button>
+              <a [routerLink]="['/recetas', receta.ID_RECETA]" class="btn btn-sm btn-secondary me-2">Ver detalle</a>
+              <a *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" [routerLink]="['/recetas', receta.ID_RECETA, 'editar']" class="btn btn-sm btn-secondary me-2">Editar</a>
+              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'A'" class="btn btn-sm btn-danger" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Desactivar</button>
+              <button *ngIf="api.tienePermiso('GESTIONAR_RECETAS') && receta.ESTADO === 'I'" class="btn btn-sm btn-success" (click)="confirmarCambioEstado(receta.ID_RECETA, receta.ESTADO)">Activar</button>
             </td>
           </tr>
         </tbody>

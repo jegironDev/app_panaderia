@@ -101,7 +101,7 @@ export interface CrearPedidoRequest {
 export interface SolicitudCancelacion { identificadorSolicitud: number; estado: string; motivo: string; }
 export interface Puesto { ID_ROL: number; NOMBRE: string; DESCRIPCION: string | null; ESTADO: string; USUARIOS_ACTIVOS?: number; USUARIOS_ASIGNADOS?: number; PERMISOS?: Array<{ ID_PERMISO: number; CODIGO: string; DESCRIPCION: string }>; }
 export interface ResumenDashboard { PENDIENTES: number; EN_PRODUCCION: number; LISTOS_DESPACHO: number; ENTREGADOS_MES: number; SEMANAL:Array<{NOMBRE:string;UNIDADES:number}>; MENSUAL:Array<{NOMBRE:string;UNIDADES:number}>; SUCURSAL_MAS:{NOMBRE:string;PEDIDOS:number}|null; SUCURSAL_MENOS:{NOMBRE:string;PEDIDOS:number}|null; }
-export interface Abastecimiento { ID_DETALLE_INVENTARIO: number; FECHA: string; PRODUCTO: string; ABREVIATURA: string; RESPONSABLE: string; EXISTENCIA_ANTERIOR: number; EXISTENCIA_NUEVA: number; }
+export interface Abastecimiento { ID_DETALLE_INVENTARIO: number; FECHA: string; PRODUCTO: string; ABREVIATURA: string; RESPONSABLE: string; ORIGEN?:string; TIPO_MOVIMIENTO?:string; EXISTENCIA_ANTERIOR: number; EXISTENCIA_NUEVA: number; }
 export interface Ruta { ID_RUTA: number; NOMBRE: string; DESCRIPCION: string | null; ESTADO: string; }
 export interface Despacho { ID_DESPACHO: number; ID_PEDIDO: number; ID_RUTA: number | null; ID_USUARIO_PILOTO: number | null; ESTADO: string; RUTA: string | null; SUCURSAL: string; PILOTO: string | null; }
 export interface EntregaRuta { ID_ENTREGA_RUTA:number; ID_PEDIDO:number; POSICION:number; ESTADO:string; ID_EJECUCION_RUTA:number; RUTA:string; SUCURSAL:string; }
@@ -285,12 +285,13 @@ export class ApiService {
       identificadorUsuario: datos.usuario?.identificadorUsuario,
       identificadorSucursal: datos.usuario?.identificadorSucursal ?? null,
       nombre: typeof datos.usuario?.nombre === 'string' ? datos.usuario.nombre.trim() : null,
+      esPiloto: datos.usuario?.esPiloto === true,
     }));
   }
   limpiarSesion() { sessionStorage.removeItem('token'); sessionStorage.removeItem('permisos'); sessionStorage.removeItem('identidad'); }
   actualizarIdentidadSesion(usuario: any) {
     sessionStorage.setItem('permisos', JSON.stringify(Array.isArray(usuario?.permisos) ? usuario.permisos : []));
-    sessionStorage.setItem('identidad', JSON.stringify({ identificadorUsuario: usuario?.identificadorUsuario, identificadorSucursal: usuario?.identificadorSucursal ?? null, nombre: usuario?.nombre || null }));
+    sessionStorage.setItem('identidad', JSON.stringify({ identificadorUsuario: usuario?.identificadorUsuario, identificadorSucursal: usuario?.identificadorSucursal ?? null, nombre: usuario?.nombre || null, esPiloto: usuario?.esPiloto === true }));
   }
   tieneAlgunPermiso(permisos: string[]): boolean {
     try {
@@ -311,6 +312,7 @@ export class ApiService {
       return typeof nombre === 'string' && nombre.trim() ? nombre.trim() : null;
     } catch { return null; }
   }
+  esPilotoSesion(): boolean { try { return JSON.parse(sessionStorage.getItem('identidad') || '{}').esPiloto === true; } catch { return false; } }
   iniciarSesion(datos: unknown) { return this.http.post<any>(`${this.baseUrl}/acceso/iniciar-sesion`, datos); }
   verificarSesion() { return this.http.get<{ usuario: any }>(`${this.baseUrl}/acceso/sesion`, this.encabezados()); }
   cerrarSesion() { return this.http.post(`${this.baseUrl}/acceso/cerrar-sesion`, null, this.encabezados()); }
@@ -380,6 +382,7 @@ export class ApiService {
   estadoPuesto(id: number, estado: string) { return this.http.patch<Puesto>(`${this.baseUrl}/puestos/${id}/estado`, { estado }, this.encabezados()); }
   abastecimientos() { return this.http.get<Abastecimiento[]>(`${this.baseUrl}/abastecimientos`, this.encabezados()); }
   registrarAbastecimiento(datos: { identificadorProducto: number; identificadorUnidadMedida?: number; cantidad: number }) { return this.http.post(`${this.baseUrl}/abastecimientos`, datos, this.encabezados()); }
+  actualizarMinimoInventario(id:number, existenciaMinima:number) { return this.http.patch(`${this.baseUrl}/inventario/${id}/minimo`, { existenciaMinima }, this.encabezados()); }
   rutas(incluirInactivas = false) { return this.http.get<Ruta[]>(`${this.baseUrl}/rutas${incluirInactivas ? '?incluirInactivas=true' : ''}`, this.encabezados()); }
   crearRuta(datos: { nombre: string; descripcion?: string | null }) { return this.http.post(`${this.baseUrl}/rutas`, datos, this.encabezados()); }
   editarRuta(id: number, datos: { nombre: string; descripcion?: string | null }) { return this.http.put(`${this.baseUrl}/rutas/${id}`, datos, this.encabezados()); }
@@ -392,7 +395,7 @@ export class ApiService {
   pedidosDisponiblesDespacho() { return this.http.get<Array<{ID_PEDIDO:number;SUCURSAL:string;FECHA_PEDIDO:string}>>(`${this.baseUrl}/despachos/pedidos-disponibles`,this.encabezados()); }
   pilotosDespacho() { return this.http.get<Array<{ID_USUARIO:number;USUARIO:string;PRIMER_NOMBRE:string;PRIMER_APELLIDO:string}>>(`${this.baseUrl}/despachos/pilotos`,this.encabezados()); }
   ejecucionesRuta() { return this.http.get<any[]>(`${this.baseUrl}/ejecuciones-ruta`,this.encabezados()); }
-  crearEjecucionRuta(datos:{identificadorRuta:number;identificadorPiloto:number;identificadoresPedidos:number[];observaciones?:string}) { return this.http.post(`${this.baseUrl}/ejecuciones-ruta`,datos,this.encabezados()); }
+  crearEjecucionRuta(datos:{identificadorRuta:number;identificadorJornada:number;identificadorPiloto:number;identificadoresPedidos:number[];observaciones?:string}) { return this.http.post(`${this.baseUrl}/ejecuciones-ruta`,datos,this.encabezados()); }
   entregasPiloto() { return this.http.get<EntregaRuta[]>(`${this.baseUrl}/piloto/entregas`,this.encabezados()); }
   confirmarEntregaRuta(id:number) { return this.http.post(`${this.baseUrl}/piloto/entregas/${id}/confirmar`,{},this.encabezados()); }
   solicitarReordenamiento(id:number, posicionSolicitada:number, justificacion:string) { return this.http.post(`${this.baseUrl}/piloto/entregas/${id}/solicitudes-reordenamiento`,{posicionSolicitada,justificacion},this.encabezados()); }
@@ -400,6 +403,9 @@ export class ApiService {
   reordenamientos() { return this.http.get<any[]>(`${this.baseUrl}/reordenamientos`,this.encabezados()); }
   resolverReordenamiento(id:number, decision:'AUTORIZAR'|'RECHAZAR', observacion?:string) { return this.http.post(`${this.baseUrl}/reordenamientos/${id}/resolver`,{decision,observacion},this.encabezados()); }
   bitacoras(filtros:{pagina:number;tamano:number;modulo?:string;usuario?:string;accion?:string;resultado?:string;desde?:string;hasta?:string}) { const p=new URLSearchParams();Object.entries(filtros).forEach(([k,v])=>{if(v!==undefined&&v!=='')p.set(k,String(v));});return this.http.get<any>(`${this.baseUrl}/bitacoras?${p}`,this.encabezados()); }
+  fuentesBitacora() { return this.http.get<Array<{codigo:string;titulo:string;descripcion:string}>>(`${this.baseUrl}/bitacoras/fuentes`, this.encabezados()); }
+  usuariosBitacora() { return this.http.get<Array<{ID_USUARIO:number;USUARIO:string}>>(`${this.baseUrl}/bitacoras/usuarios`, this.encabezados()); }
+  bitacoraPorTipo(tipo:string,filtros:{pagina:number;tamano:number;usuario?:number;desde?:string;hasta?:string}) { const parametros=new URLSearchParams(); Object.entries(filtros).forEach(([clave,valor])=>{if(valor!==undefined&&valor!=='')parametros.set(clave,String(valor));}); return this.http.get<any>(`${this.baseUrl}/bitacoras/${encodeURIComponent(tipo)}?${parametros}`,this.encabezados()); }
   existenciasInventario() { return this.http.get<ExistenciaInventario[]>(`${this.baseUrl}/inventario/stock`, this.encabezados()); }
   cancelaciones() { return this.http.get<any[]>(`${this.baseUrl}/cancelaciones`, this.encabezados()); }
   resolverCancelacion(id: number, decision: string, observacion?: string) { return this.http.post(`${this.baseUrl}/cancelaciones/${id}/resolver`, { decision, observacion }, this.encabezados()); }

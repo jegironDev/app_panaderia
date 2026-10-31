@@ -1,4 +1,4 @@
-import { consultarProcedimiento, consultarProductosDetallados, consultarProductosPorTipo, consultarUnidadesMedidaActivas } from '../servicios/consultas-oracle.js';
+import { consultarProcedimiento, consultarProductosDetallados, consultarProductosPorTipo, consultarUnidadesMedidaActivas, consultarStockDisponible } from '../servicios/consultas-oracle.js';
 
 // Devuelve los productos activos obtenidos desde el paquete Oracle existente.
 export async function listarProductos(solicitud, respuesta) {
@@ -21,5 +21,5 @@ export async function listarUnidadesMedida(solicitud, respuesta) {
 
 // Devuelve las existencias disponibles calculadas por la vista Oracle existente.
 export async function consultarExistencias(solicitud, respuesta) {
-  respuesta.json(await consultarProcedimiento('OBTENER_STOCK'));
+  respuesta.json(await consultarStockDisponible());
 }

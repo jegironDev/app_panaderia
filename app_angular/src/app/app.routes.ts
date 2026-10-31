@@ -17,7 +17,6 @@ import { DetalleProduccion } from './gestion-produccion/detalle-produccion/detal
 import { PortalProduccion } from './gestion-produccion/portal-produccion/portal-produccion';
 import { ProduccionesPedido } from './gestion-produccion/producciones-pedido/producciones-pedido';
 import { Puestos } from './gestion-puestos/puestos/puestos';
-import { Abastecimientos } from './operaciones/abastecimientos/abastecimientos';
 import { Despachos } from './operaciones/despachos/despachos';
 import { MiRuta } from './operaciones/mi-ruta/mi-ruta';
 import { Rutas } from './operaciones/rutas/rutas';
@@ -27,6 +26,7 @@ import { Cancelaciones } from './operaciones/cancelaciones/cancelaciones';
 import { Bitacoras } from './operaciones/bitacoras/bitacoras';
 import { GestionInventario } from './operaciones/gestion-inventario/gestion-inventario';
 import { Productos } from './gestion-productos/productos/productos';
+import { MateriasPrimas } from './gestion-productos/materias-primas/materias-primas';
 import { requerirPermiso, requerirSesion } from './compartidos/seguridad/guardias-rutas';
 
 export const routes: Routes = [
@@ -37,13 +37,16 @@ export const routes: Routes = [
   { path: 'usuarios/:id/editar', component: EditarUsuario, canActivate: [requerirPermiso], data: { permisos: ['EDITAR_USUARIOS'] } },
   { path: 'puestos', component: Puestos, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PUESTOS'] } },
   { path: 'productos', component: Productos, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PRODUCTOS'] } },
-  { path: 'abastecimientos', component: Abastecimientos, canActivate: [requerirPermiso], data: { permisos: ['VER_INVENTARIO', 'REGISTRAR_ENTRADA_INVENTARIO'] } },
+  { path: 'materias-primas-insumos', component: MateriasPrimas, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PRODUCTOS'] } },
+  // Se conserva la dirección histórica sin mantener un segundo formulario de inventario.
+  { path: 'abastecimientos', pathMatch: 'full', redirectTo: 'gestion-inventario' },
   { path: 'gestion-inventario', component: GestionInventario, canActivate: [requerirPermiso], data: { permisos: ['VER_INVENTARIO'] } },
   { path: 'despachos', component: Despachos, canActivate: [requerirPermiso], data: { permisos: ['PREPARAR_DESPACHOS'] } },
   { path: 'despachos/ejecuciones/:id', component: DetalleEjecucion, canActivate: [requerirPermiso], data: { permisos: ['PREPARAR_DESPACHOS'] } },
   { path: 'despachos/reordenamientos', component: Reordenamientos, canActivate: [requerirPermiso], data: { permisos: ['RESOLVER_REORDENAMIENTOS'] } },
   { path: 'cancelaciones', component: Cancelaciones, canActivate: [requerirPermiso], data: { permisos: ['RESOLVER_CANCELACIONES_PEDIDOS'] } },
   { path: 'bitacoras', component: Bitacoras, canActivate: [requerirPermiso], data: { permisos: ['VER_REPORTES'] } },
+  { path: 'bitacoras/:tipo', component: Bitacoras, canActivate: [requerirPermiso], data: { permisos: ['VER_REPORTES'] } },
   { path: 'rutas', component: Rutas, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_RUTAS'] } },
   { path: 'mi-ruta', component: MiRuta, canActivate: [requerirPermiso], data: { permisos: ['CONSULTAR_MI_RUTA'] } },
   { path: 'pedidos', component: Pedidos, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS'] } },

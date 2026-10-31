@@ -44,6 +44,15 @@ async function obtenerPermisosUsuario(conexion, identificadorUsuario) {
   return resultado.rows.map(fila => fila.CODIGO);
 }
 
+async function esPiloto(conexion, identificadorUsuario) {
+  const resultado = await conexion.execute(
+    `SELECT 1 FROM USUARIO_ROL ur JOIN ROL r ON r.ID_ROL=ur.ID_ROL
+      WHERE ur.ID_USUARIO=:identificadorUsuario AND r.NOMBRE='PILOTO' AND r.ESTADO='A'
+      FETCH FIRST 1 ROWS ONLY`, { identificadorUsuario }, formatoFilas,
+  );
+  return resultado.rows.length > 0;
+}
+
 // Recupera la identidad actual desde Oracle para no confiar en permisos guardados en el cliente.
 export async function obtenerIdentidadActual(identificadorUsuario) {
   const conexion = await obtenerConexion();
@@ -69,6 +78,7 @@ export async function obtenerIdentidadActual(identificadorUsuario) {
       usuario: usuario.USUARIO,
       nombre: `${usuario.PRIMER_NOMBRE} ${usuario.PRIMER_APELLIDO}`,
       permisos: await obtenerPermisosUsuario(conexion, usuario.ID_USUARIO),
+      esPiloto: await esPiloto(conexion, usuario.ID_USUARIO),
     };
   } finally {
     await conexion.close();
@@ -120,6 +130,11 @@ export async function iniciarSesion(nombreUsuario, contrasena) {
 
     await restablecerIntentos(conexion, usuario.ID_USUARIO);
     const permisos = await obtenerPermisosUsuario(conexion, usuario.ID_USUARIO);
+    await conexion.execute(
+      `INSERT INTO BITACORA_SESIONES (ID_USUARIO, FECHA_HORA_INICIO)
+       VALUES (:identificadorUsuario, SYSDATE)`,
+      { identificadorUsuario: usuario.ID_USUARIO },
+    );
     await conexion.commit();
 
     const datosUsuario = {
@@ -128,6 +143,7 @@ export async function iniciarSesion(nombreUsuario, contrasena) {
       usuario: usuario.USUARIO,
       nombre: `${usuario.PRIMER_NOMBRE} ${usuario.PRIMER_APELLIDO}`,
       permisos,
+      esPiloto: await esPiloto(conexion, usuario.ID_USUARIO),
     };
     const sesion = crearSesion(datosUsuario);
 

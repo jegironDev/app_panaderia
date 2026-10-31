@@ -48,6 +48,12 @@ export class DetalleProduccion implements OnInit, OnDestroy {
     });
   }
   etiquetaEstado(estado: string) { return estado.replaceAll('_', ' '); }
+  claseEstado(estado: string) {
+    if (estado === 'FINALIZADA') return 'text-bg-success';
+    if (estado === 'EN_PRODUCCION') return 'text-bg-warning';
+    if (estado === 'CANCELADA' || estado === 'ANULADA') return 'text-bg-danger';
+    return 'text-bg-secondary';
+  }
   private mostrarError(error: any, alternativa: string) {
     this.cargando = false; this.procesando = false;
     if (error?.status === 401) { this.api.limpiarSesion(); this.router.navigate(['/ingresar']); return; }

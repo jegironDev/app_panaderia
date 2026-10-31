@@ -33,6 +33,12 @@ export class Producciones implements OnInit {
   }
   puedePlanificar() { return this.api.tienePermiso('AUTORIZAR_PRODUCCION'); }
   etiquetaEstado(estado: string) { return estado.replaceAll('_', ' '); }
+  claseEstado(estado: string) {
+    if (estado === 'FINALIZADA') return 'text-bg-success';
+    if (estado === 'EN_PRODUCCION') return 'text-bg-warning';
+    if (estado === 'CANCELADA' || estado === 'ANULADA') return 'text-bg-danger';
+    return 'text-bg-secondary';
+  }
   private agruparPorPedido(producciones: ProduccionResumen[]) {
     const grupos = new Map<number, { identificadorPedido: number; sucursal: string | null; estadoPedido: string | null; estadoVisual: string; producciones: ProduccionResumen[] }>();
     for (const produccion of producciones) {

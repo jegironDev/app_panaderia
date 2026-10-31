@@ -11,3 +11,6 @@ export async function solicitudesCambio(s,r){r.json(await distribucion.solicitud
 export async function misSolicitudesCambio(s,r){r.json(await distribucion.misSolicitudesCambio(s.identidad));}
 export async function resolverCambio(s,r){r.json(await distribucion.resolverCambio(s.params.id,s.body||{},s.identidad));}
 export async function bitacoraGeneral(s,r){r.json(await distribucion.bitacoraGeneral(s.query));}
+export async function fuentesBitacora(s,r){r.json(distribucion.fuentesDisponiblesBitacora());}
+export async function usuariosDeBitacora(s,r){r.json(await distribucion.usuariosBitacora());}
+export async function bitacoraPorTipo(s,r){r.json(await distribucion.consultarBitacora(s.params.tipo,s.query));}

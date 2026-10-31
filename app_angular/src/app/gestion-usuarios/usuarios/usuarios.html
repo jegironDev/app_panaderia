@@ -11,11 +11,12 @@
   <h2 class="h4">Usuarios activos</h2>
   <div class="card shadow-sm mb-4">
     <div class="card-body">
-      <table class="table table-hover align-middle mb-0">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
         <thead>
           <tr>
             <th>Usuario</th>
             <th>Nombre</th>
+            <th>Puesto</th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
@@ -24,17 +25,18 @@
           <tr *ngFor="let u of activos">
             <td>{{ u.USUARIO }}</td>
             <td>{{ u.PRIMER_NOMBRE }} {{ u.PRIMER_APELLIDO }}</td>
+            <td>{{ formatoPuesto(u.PUESTO) }}</td>
             <td><span class="badge text-bg-success">Activo</span></td>
             <td>
-              <a [routerLink]="['/usuarios', u.ID_USUARIO, 'editar']" class="btn btn-sm btn-primary me-2">Editar</a>
+              <a [routerLink]="['/usuarios', u.ID_USUARIO, 'editar']" class="btn btn-sm btn-secondary me-2">Editar</a>
               <button *ngIf="api.tienePermiso('DESACTIVAR_USUARIOS')" class="btn btn-sm btn-danger" type="button" (click)="cambiarEstado(u)">Dar de baja</button>
             </td>
           </tr>
-          <tr *ngIf="!activos.length"><td colspan="4" class="text-muted">No hay usuarios activos.</td></tr>
+          <tr *ngIf="!activos.length"><td colspan="5" class="text-muted">No hay usuarios activos.</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
   <h2 class="h4">Usuarios de baja</h2>
-  <div class="card shadow-sm"><div class="card-body"><table class="table table-hover align-middle mb-0"><thead><tr><th>Usuario</th><th>Nombre</th><th>Fecha de baja</th><th>Acciones</th></tr></thead><tbody><tr *ngFor="let u of deBaja"><td>{{ u.USUARIO }}</td><td>{{ u.PRIMER_NOMBRE }} {{ u.PRIMER_APELLIDO }}</td><td>{{ u.FECHA_BAJA || 'Sin registro histórico' }}</td><td><button *ngIf="api.tienePermiso('DESACTIVAR_USUARIOS')" class="btn btn-sm btn-success" type="button" (click)="cambiarEstado(u)">Rehabilitar</button></td></tr><tr *ngIf="!deBaja.length"><td colspan="4" class="text-muted">No hay usuarios dados de baja.</td></tr></tbody></table></div></div>
+  <div class="card shadow-sm"><div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Usuario</th><th>Nombre</th><th>Puesto</th><th>Fecha de baja</th><th>Acciones</th></tr></thead><tbody><tr *ngFor="let u of deBaja"><td>{{ u.USUARIO }}</td><td>{{ u.PRIMER_NOMBRE }} {{ u.PRIMER_APELLIDO }}</td><td>{{ formatoPuesto(u.PUESTO) }}</td><td>{{ u.FECHA_BAJA || 'Sin registro histórico' }}</td><td><button *ngIf="api.tienePermiso('DESACTIVAR_USUARIOS')" class="btn btn-sm btn-success" type="button" (click)="cambiarEstado(u)">Rehabilitar</button></td></tr><tr *ngIf="!deBaja.length"><td colspan="5" class="text-muted">No hay usuarios dados de baja.</td></tr></tbody></table></div></div></div>
 </main>

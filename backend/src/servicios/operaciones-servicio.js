@@ -8,16 +8,26 @@ export async function listarAbastecimientos(filtros = {}) {
   const conexion = await obtenerConexion();
   try {
     const resultado = await conexion.execute(
-      `SELECT di.ID_DETALLE_INVENTARIO, di.FECHA, di.ORIGEN, di.EXISTENCIA_ANTERIOR, di.EXISTENCIA_NUEVA,
+      `SELECT di.ID_DETALLE_INVENTARIO, di.FECHA, di.ORIGEN, di.TIPO_MOVIMIENTO, di.EXISTENCIA_ANTERIOR, di.EXISTENCIA_NUEVA,
               p.ID_PRODUCTO, p.NOMBRE AS PRODUCTO, um.ABREVIATURA, u.USUARIO AS RESPONSABLE
          FROM DETALLE_INVENTARIO di JOIN INVENTARIO i ON i.ID_INVENTARIO = di.ID_INVENTARIO
          JOIN PRODUCTO p ON p.ID_PRODUCTO = i.ID_PRODUCTO JOIN UNIDAD_MEDIDA um ON um.ID_UNIDAD_MEDIDA = p.ID_UNIDAD_MEDIDA
          JOIN USUARIO u ON u.ID_USUARIO = di.ID_USUARIO
-        WHERE di.ORIGEN = 'ABASTECIMIENTO'
-        ORDER BY di.FECHA DESC, di.ID_DETALLE_INVENTARIO DESC`, [], formato,
+        ORDER BY di.FECHA DESC, di.ID_DETALLE_INVENTARIO DESC FETCH FIRST 10 ROWS ONLY`, [], formato,
     );
     return resultado.rows;
   } finally { await conexion.close(); }
+}
+
+export async function actualizarExistenciaMinima(identificadorProducto, valor, identidad) {
+  const minimo=Number(valor); if(!Number.isFinite(minimo)||minimo<0)throw error('La existencia mínima debe ser un número no negativo.',400);
+  const conexion=await obtenerConexion(); try {
+    const inventario=await conexion.execute(`SELECT ID_INVENTARIO FROM INVENTARIO WHERE ID_PRODUCTO=:identificadorProducto AND ESTADO='A' FOR UPDATE`,{identificadorProducto},formato);
+    if(!inventario.rows.length)throw error('No existe inventario activo para el producto.',404);
+    await conexion.execute(`UPDATE INVENTARIO SET EXISTENCIA_MINIMA=:minimo WHERE ID_INVENTARIO=:idInventario`,{minimo,idInventario:inventario.rows[0].ID_INVENTARIO});
+    await conexion.execute(`INSERT INTO BITACORA_GENERAL (ID_USUARIO,MODULO,ACCION,ENTIDAD,ID_ENTIDAD,DESCRIPCION) VALUES (:usuario,'INVENTARIO','ACTUALIZAR_MINIMO','INVENTARIO',:entidad,:descripcion)`,{usuario:identidad.identificadorUsuario,entidad:inventario.rows[0].ID_INVENTARIO,descripcion:`Existencia mínima actualizada a ${minimo}`});
+    await conexion.commit(); return {identificadorProducto,existenciaMinima:minimo};
+  } catch(e){await conexion.rollback();throw e;} finally{await conexion.close();}
 }
 
 export async function registrarAbastecimiento(datos, identidad) {
@@ -39,7 +49,7 @@ export async function registrarAbastecimiento(datos, identidad) {
     await conexion.execute(`UPDATE INVENTARIO SET CANTIDAD = :nueva WHERE ID_INVENTARIO = :identificadorInventario`, { nueva, identificadorInventario: fila.ID_INVENTARIO });
     await conexion.execute(
       `INSERT INTO DETALLE_INVENTARIO (ID_INVENTARIO, ID_USUARIO, ORIGEN, TIPO_MOVIMIENTO, EXISTENCIA_ANTERIOR, EXISTENCIA_NUEVA)
-       VALUES (:identificadorInventario, :identificadorUsuario, 'ABASTECIMIENTO', 'ENTRADA', :anterior, :nueva)`,
+       VALUES (:identificadorInventario, :identificadorUsuario, 'COMPRA', 'ENTRADA', :anterior, :nueva)`,
       { identificadorInventario: fila.ID_INVENTARIO, identificadorUsuario: identidad.identificadorUsuario, anterior, nueva },
     );
     await conexion.commit(); return { identificadorProducto, cantidad, existenciaAnterior: anterior, existenciaNueva: nueva };

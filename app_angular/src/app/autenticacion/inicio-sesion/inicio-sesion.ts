@@ -44,7 +44,7 @@ export class InicioSesion {
         this.api.guardarSesion(r);
         this.procesando = false;
         this.cdr.markForCheck();
-        this.router.navigateByUrl('/inicio');
+        this.router.navigateByUrl(this.api.esPilotoSesion() ? '/mi-ruta' : '/inicio');
       },
       error: (e) => {
         this.procesando = false;
