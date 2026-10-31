@@ -29,9 +29,10 @@ export class BarraNavegacion {
 
   mostrarUsuarios(): boolean { return this.api.tieneAlgunPermiso(['VER_USUARIOS']); }
   mostrarPuestos(): boolean { return this.api.tienePermiso('GESTIONAR_PUESTOS'); }
+  mostrarSucursales(): boolean { return this.api.tienePermiso('GESTIONAR_SUCURSALES'); }
   mostrarProductos(): boolean { return this.api.tienePermiso('GESTIONAR_PRODUCTOS'); }
   mostrarRecetas(): boolean { return this.api.tieneAlgunPermiso(['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS']); }
-  mostrarPedidos(): boolean { return this.api.tieneAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS']); }
+  mostrarPedidos(): boolean { return this.api.tieneAlgunPermiso(['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS', 'AUTORIZAR_PRODUCCION']); }
   mostrarProduccion(): boolean { return this.api.tieneAlgunPermiso(['AUTORIZAR_PRODUCCION', 'INICIAR_PRODUCCION', 'CONFIRMAR_PRODUCCION']); }
   mostrarInventario(): boolean { return this.api.tieneAlgunPermiso(['VER_INVENTARIO', 'REGISTRAR_ENTRADA_INVENTARIO']); }
   mostrarAbastecimientos(): boolean { return this.api.tieneAlgunPermiso(['VER_INVENTARIO', 'REGISTRAR_ENTRADA_INVENTARIO']); }

@@ -21,7 +21,13 @@ function limitarIntentosInicioSesion({ maximo = 10, ventanaMs = 15 * 60 * 1000 }
 export function crearAplicacion({ directorioPublico } = {}) {
   const aplicacion = express();
 
-  aplicacion.use(helmet());
+  aplicacion.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        styleSrc: ["'self'"],
+      },
+    },
+  }));
   aplicacion.use(express.json());
   aplicacion.post('/api/acceso/iniciar-sesion', limitarIntentosInicioSesion());
   aplicacion.use('/api', rutasApi);

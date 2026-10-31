@@ -7,6 +7,7 @@ export interface Sucursal {
   ID_SUCURSAL: number;
   NOMBRE: string;
 }
+export interface SucursalAdministracion extends Sucursal { ESTADO: 'A' | 'I'; }
 
 export type TipoUsuario = 'ADMIN' | 'OPERATIVO' | 'ESTANDAR';
 
@@ -322,6 +323,10 @@ export class ApiService {
   editarUsuario(id: number, datos: EditarUsuarioRequest) { return this.http.put<Usuario>(`${this.baseUrl}/usuarios/${id}`, datos, this.encabezados()); }
   cambiarEstadoUsuario(id: number, estado: 'A' | 'I') { return this.http.patch<Usuario>(`${this.baseUrl}/usuarios/${id}/estado`, { estado }, this.encabezados()); }
   sucursales() { return this.http.get<Sucursal[]>(`${this.baseUrl}/sucursales`, this.encabezados()); }
+  sucursalesAdministracion() { return this.http.get<SucursalAdministracion[]>(`${this.baseUrl}/sucursales/administracion`, this.encabezados()); }
+  crearSucursal(nombre: string) { return this.http.post<SucursalAdministracion>(`${this.baseUrl}/sucursales`, { nombre }, this.encabezados()); }
+  editarSucursal(id: number, nombre: string) { return this.http.patch<SucursalAdministracion>(`${this.baseUrl}/sucursales/${id}`, { nombre }, this.encabezados()); }
+  inhabilitarSucursal(id: number) { return this.http.patch<SucursalAdministracion>(`${this.baseUrl}/sucursales/${id}/estado`, { estado: 'I' }, this.encabezados()); }
   pedidos() { return this.http.get<PedidoResumen[]>(`${this.baseUrl}/pedidos`, this.encabezados()); }
   pedidoPorId(id: number) { return this.http.get<DetallePedido>(`${this.baseUrl}/pedidos/${id}`, this.encabezados()); }
   jornadasPedido() { return this.http.get<Jornada[]>(`${this.baseUrl}/pedidos/jornadas`, this.encabezados()); }
@@ -348,6 +353,8 @@ export class ApiService {
   autorizarPedido(id: number) { return this.http.post<DetallePedido>(`${this.baseUrl}/pedidos/${id}/autorizar`, {}, this.encabezados()); }
   solicitarCancelacion(id: number, motivo: string) { return this.http.post<SolicitudCancelacion>(`${this.baseUrl}/pedidos/${id}/solicitudes-cancelacion`, { motivo }, this.encabezados()); }
   pedidosEnCola() { return this.http.get<PedidoResumen[]>(`${this.baseUrl}/pedidos/cola`, this.encabezados()); }
+  pedidosPendientesSinCola() { return this.http.get<PedidoResumen[]>(`${this.baseUrl}/pedidos/cola/pendientes`, this.encabezados()); }
+  incorporarPedidoEnCola(id: number) { return this.http.post<{ identificadorPedido: number; posicionCola: number }>(`${this.baseUrl}/pedidos/${id}/cola`, {}, this.encabezados()); }
   opcionesPlanificacionProduccion(idPedido: number) { return this.http.get<OpcionPlanificacionProduccion>(`${this.baseUrl}/producciones/pedidos/${idPedido}/opciones-planificacion`, this.encabezados()); }
   planificarProduccion(datos: { identificadorPedido: number; recetas: Array<{ identificadorDetallePedido: number; identificadorReceta: number }> }) {
     return this.http.post<PlanificacionProduccion>(`${this.baseUrl}/producciones/planificar`, datos, this.encabezados());

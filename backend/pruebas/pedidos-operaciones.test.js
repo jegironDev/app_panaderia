@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { obtenerFiltroSucursal } from '../src/servicios/aislamiento-sucursales-servicio.js';
-import { autorizarPedido, crearPedido, esEstadoAprobadoParaProduccion, validarDatosNuevoPedido, validarMotivoCancelacion } from '../src/servicios/pedidos-servicio.js';
+import { autorizarPedido, crearPedido, esEstadoAprobadoParaProduccion, tieneAccesoGlobalPedidos, validarDatosNuevoPedido, validarMotivoCancelacion } from '../src/servicios/pedidos-servicio.js';
 
 const pedidoValido = {
   identificadorJornada: 1,
@@ -72,6 +72,12 @@ test('reconoce ambos nombres del estado aprobado durante la transición', () => 
   assert.equal(esEstadoAprobadoParaProduccion('AUTORIZADO'), true);
   assert.equal(esEstadoAprobadoParaProduccion('APROBADO_PARA_PRODUCCION'), true);
   assert.equal(esEstadoAprobadoParaProduccion('PENDIENTE'), false);
+});
+
+test('la planificación autorizada puede consultar pedidos de todas las sucursales', () => {
+  assert.equal(tieneAccesoGlobalPedidos({ permisos: ['AUTORIZAR_PRODUCCION'] }), true);
+  assert.equal(tieneAccesoGlobalPedidos({ permisos: ['AUTORIZAR_PEDIDOS'] }), true);
+  assert.equal(tieneAccesoGlobalPedidos({ permisos: ['CREAR_PEDIDOS'] }), false);
 });
 
 test('bloquea la autorización directa sin modificar el estado mientras falta la planificación', async () => {

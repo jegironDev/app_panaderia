@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   estaColaPedidosHabilitada,
   consultarColaPedidos,
+  consultarPedidosPendientesSinCola,
+  incorporarPedidoEnCola,
   exigirColaPedidosHabilitada,
   moverPedidoEnCola,
   retirarPedidoDeCola,
@@ -99,6 +101,44 @@ test('crear pedido asigna posición dentro de la transacción solo cuando la col
   } finally {
     if (valorAnterior === undefined) delete process.env.COLA_PEDIDOS_HABILITADA;
     else process.env.COLA_PEDIDOS_HABILITADA = valorAnterior;
+  }
+});
+
+test('lista pendientes fuera de cola sin asignarles una posición', async () => {
+  let cerro = false;
+  const conexion = { async execute(sql) { assert.match(sql, /POSICION_COLA IS NULL/); return { rows: [{ ID_PEDIDO: 21, POSICION_COLA: null }] }; }, async close() { cerro = true; } };
+  const pendientes = await consultarPedidosPendientesSinCola(conexion, true);
+  assert.deepEqual(pendientes, [{ ID_PEDIDO: 21, POSICION_COLA: null }]);
+  assert.equal(cerro, false);
+});
+
+test('incorporar a cola bloquea el coordinador, asigna secuencia y audita en una transacción', async () => {
+  const llamadas = []; let commits = 0; let rollbacks = 0;
+  const conexion = {
+    async execute(sql, parametros) {
+      llamadas.push({ sql, parametros });
+      if (sql.includes('COLA_PEDIDOS_CONTROL')) return { rows: [{ ID_CONTROL: 1 }] };
+      if (sql.includes('FROM PEDIDO p JOIN ESTADO_PEDIDO')) return { rows: [{ ID_PEDIDO: 21, POSICION_COLA: null, ESTADO: 'PENDIENTE' }] };
+      if (sql.includes('FROM DUAL')) return { rows: [{ POSICION_COLA: 77 }] };
+      if (sql.startsWith('UPDATE PEDIDO')) return { rowsAffected: 1 };
+      if (sql.includes('INSERT INTO BITACORA_PEDIDOS')) return {};
+      throw new Error('Consulta no esperada');
+    },
+    async commit() { commits += 1; }, async rollback() { rollbacks += 1; },
+  };
+  const resultado = await incorporarPedidoEnCola(21, { identificadorUsuario: 5 }, conexion, true);
+  assert.deepEqual(resultado, { identificadorPedido: 21, posicionCola: 77 });
+  assert.equal(llamadas[0].sql.includes('COLA_PEDIDOS_CONTROL'), true);
+  assert.equal(llamadas.find(llamada => llamada.sql.startsWith('UPDATE PEDIDO')).parametros.posicionCola, 77);
+  assert.equal(commits, 1); assert.equal(rollbacks, 0);
+});
+
+test('incorporar rechaza pedidos aprobados o ya presentes sin modificar la cola', async () => {
+  for (const pedido of [{ ESTADO: 'APROBADO_PARA_PRODUCCION', POSICION_COLA: null }, { ESTADO: 'PENDIENTE', POSICION_COLA: 12 }]) {
+    let actualizaciones = 0; let rollback = 0;
+    const conexion = { async execute(sql) { if (sql.includes('COLA_PEDIDOS_CONTROL')) return { rows: [{ ID_CONTROL: 1 }] }; if (sql.includes('FROM PEDIDO p JOIN ESTADO_PEDIDO')) return { rows: [{ ID_PEDIDO: 22, ...pedido }] }; if (sql.startsWith('UPDATE PEDIDO')) actualizaciones += 1; throw new Error('No esperada'); }, async commit() {}, async rollback() { rollback += 1; } };
+    await assert.rejects(() => incorporarPedidoEnCola(22, { identificadorUsuario: 5 }, conexion, true), error => error.codigoEstado === 409);
+    assert.equal(actualizaciones, 0); assert.equal(rollback, 1);
   }
 });
 

@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, Usuario } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
+import { FechaGuatemalaPipe } from '../../compartidos/tuberias/fecha-guatemala.pipe';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, BarraNavegacion],
+  imports: [CommonModule, RouterLink, BarraNavegacion, FechaGuatemalaPipe],
   templateUrl: './usuarios.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -43,8 +44,8 @@ export class Usuarios implements OnInit {
   }
 
   cambiarEstado(usuario: Usuario) {
-    const estado = usuario.ESTADO === 'A' ? 'I' : 'A';
-    this.api.cambiarEstadoUsuario(usuario.ID_USUARIO, estado).subscribe({
+    if (usuario.ESTADO !== 'A') return;
+    this.api.cambiarEstadoUsuario(usuario.ID_USUARIO, 'I').subscribe({
       next: () => { this.ngOnInit(); },
       error: error => { this.error = error.error?.error || 'No fue posible actualizar el estado del usuario.'; this.cdr.markForCheck(); },
     });

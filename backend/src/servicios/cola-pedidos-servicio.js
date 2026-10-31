@@ -58,6 +58,57 @@ export async function consultarColaPedidos(habilitada = estaColaPedidosHabilitad
   }
 }
 
+// Un pedido pendiente fuera de la cola no se planifica hasta que un responsable lo incorpore.
+export async function consultarPedidosPendientesSinCola(conexionExterna = null, habilitada = estaColaPedidosHabilitada()) {
+  exigirColaPedidosHabilitada(habilitada);
+  const conexion = conexionExterna || await obtenerConexion();
+  try {
+    const resultado = await conexion.execute(
+      `SELECT p.ID_PEDIDO, p.POSICION_COLA, p.FECHA_PEDIDO, s.NOMBRE AS SUCURSAL,
+              j.NOMBRE AS JORNADA, COUNT(dp.ID_DETALLE_PEDIDO) AS LINEAS,
+              NVL(SUM(dp.CANTIDAD), 0) AS UNIDADES_PEDIDAS
+         FROM PEDIDO p
+         JOIN ESTADO_PEDIDO e ON e.ID_ESTADO_PEDIDO = p.ID_ESTADO_PEDIDO
+         JOIN SUCURSAL s ON s.ID_SUCURSAL = p.ID_SUCURSAL
+         JOIN JORNADA j ON j.ID_JORNADA = p.ID_JORNADA
+         LEFT JOIN DETALLE_PEDIDO dp ON dp.ID_PEDIDO = p.ID_PEDIDO
+        WHERE e.NOMBRE = 'PENDIENTE' AND p.POSICION_COLA IS NULL
+        GROUP BY p.ID_PEDIDO, p.POSICION_COLA, p.FECHA_PEDIDO, s.NOMBRE, j.NOMBRE
+        ORDER BY p.FECHA_PEDIDO, p.ID_PEDIDO`,
+      [], formatoFilas,
+    );
+    return resultado.rows;
+  } finally { if (!conexionExterna) await conexion.close(); }
+}
+
+// Incorpora voluntariamente un pedido pendiente a la cola global respetando el bloqueo coordinador.
+export async function incorporarPedidoEnCola(identificadorPedido, identidad, conexionExterna = null, habilitada = estaColaPedidosHabilitada()) {
+  exigirColaPedidosHabilitada(habilitada);
+  const conexion = conexionExterna || await obtenerConexion();
+  try {
+    await bloquearControlCola(conexion, habilitada);
+    const pedido = await conexion.execute(
+      `SELECT p.ID_PEDIDO, p.POSICION_COLA, e.NOMBRE AS ESTADO
+         FROM PEDIDO p JOIN ESTADO_PEDIDO e ON e.ID_ESTADO_PEDIDO = p.ID_ESTADO_PEDIDO
+        WHERE p.ID_PEDIDO = :identificadorPedido FOR UPDATE`,
+      { identificadorPedido }, formatoFilas,
+    );
+    if (!pedido.rows.length) throw crearError('Pedido no encontrado.', 404, true);
+    if (pedido.rows[0].ESTADO !== 'PENDIENTE') throw crearError('Solo puede incorporar pedidos pendientes a la cola.', 409, true);
+    if (pedido.rows[0].POSICION_COLA !== null) throw crearError('El pedido ya está incorporado a la cola.', 409, true);
+    const posicionCola = await obtenerNuevaPosicionCola(conexion, habilitada);
+    const actualizacion = await conexion.execute('UPDATE PEDIDO SET POSICION_COLA = :posicionCola WHERE ID_PEDIDO = :identificadorPedido AND POSICION_COLA IS NULL', { posicionCola, identificadorPedido });
+    if (actualizacion.rowsAffected !== 1) throw crearError('El pedido cambió durante la incorporación a la cola.', 409, true);
+    await conexion.execute(
+      `INSERT INTO BITACORA_PEDIDOS (ID_PEDIDO, ID_USUARIO, ACCION, COMENTARIO)
+       VALUES (:identificadorPedido, :identificadorUsuario, 'INCORPORADO_COLA', 'Pedido incorporado a la cola de producción')`,
+      { identificadorPedido, identificadorUsuario: identidad.identificadorUsuario },
+    );
+    await conexion.commit();
+    return { identificadorPedido, posicionCola };
+  } catch (error) { await conexion.rollback(); throw error; } finally { if (!conexionExterna) await conexion.close(); }
+}
+
 export async function moverPedidoEnCola(identificadorPedido, direccion, conexionExterna = null, habilitada = estaColaPedidosHabilitada()) {
   exigirColaPedidosHabilitada(habilitada);
   if (!['SUBIR', 'BAJAR'].includes(direccion)) throw crearError('La dirección de cola no es válida.', 400, true);

@@ -40,15 +40,17 @@ import {
   registrarPuesto,
 } from "../controladores/puestos-controlador.js";
 import { obtenerEstadoConexion } from "../controladores/estado-controlador.js";
-import { listarSucursalesActivas } from "../controladores/sucursales-controlador.js";
+import { actualizarEstadoSucursal, actualizarSucursal, listarSucursalesActivas, listarSucursalesAdministracion, registrarSucursal } from "../controladores/sucursales-controlador.js";
 import {
   autorizarPedidoRegistrado,
   bajarPedidoEnCola,
   consultarPedido,
+  incorporarPedidoRegistradoEnCola,
   listarColaPedidos,
   listarEstadosPedido,
   listarJornadas,
   listarPedidos,
+  listarPedidosPendientesSinCola,
   registrarPedido,
   registrarSolicitudCancelacion,
   subirPedidoEnCola,
@@ -138,6 +140,30 @@ rutasApi.post('/despachos/:id/entregar', manejadorAsincrono(requerirSesion), req
 rutasApi.get('/cancelaciones', manejadorAsincrono(requerirSesion), requerirPermiso('RESOLVER_CANCELACIONES_PEDIDOS'), manejadorAsincrono(listarCancelaciones));
 rutasApi.post('/cancelaciones/:id/resolver', manejadorAsincrono(requerirSesion), requerirPermiso('RESOLVER_CANCELACIONES_PEDIDOS'), manejadorAsincrono(resolverCancelacion));
 rutasApi.get(
+  "/sucursales/administracion",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("GESTIONAR_SUCURSALES"),
+  manejadorAsincrono(listarSucursalesAdministracion),
+);
+rutasApi.post(
+  "/sucursales",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("GESTIONAR_SUCURSALES"),
+  manejadorAsincrono(registrarSucursal),
+);
+rutasApi.patch(
+  "/sucursales/:id",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("GESTIONAR_SUCURSALES"),
+  manejadorAsincrono(actualizarSucursal),
+);
+rutasApi.patch(
+  "/sucursales/:id/estado",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("GESTIONAR_SUCURSALES"),
+  manejadorAsincrono(actualizarEstadoSucursal),
+);
+rutasApi.get(
   "/sucursales",
   manejadorAsincrono(requerirSesion),
   requerirAlgunPermiso(["CREAR_USUARIOS", "EDITAR_USUARIOS"]),
@@ -150,6 +176,7 @@ rutasApi.get(
     "CREAR_PEDIDOS",
     "SOLICITAR_CANCELACION_PEDIDOS",
     "AUTORIZAR_PEDIDOS",
+    "AUTORIZAR_PRODUCCION",
   ]),
   manejadorAsincrono(listarEstadosPedido),
 );
@@ -160,6 +187,7 @@ rutasApi.get(
     "CREAR_PEDIDOS",
     "SOLICITAR_CANCELACION_PEDIDOS",
     "AUTORIZAR_PEDIDOS",
+    "AUTORIZAR_PRODUCCION",
   ]),
   manejadorAsincrono(listarJornadas),
 );
@@ -170,12 +198,19 @@ rutasApi.get(
   manejadorAsincrono(listarColaPedidos),
 );
 rutasApi.get(
+  "/pedidos/cola/pendientes",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("AUTORIZAR_PRODUCCION"),
+  manejadorAsincrono(listarPedidosPendientesSinCola),
+);
+rutasApi.get(
   "/pedidos",
   manejadorAsincrono(requerirSesion),
   requerirAlgunPermiso([
     "CREAR_PEDIDOS",
     "SOLICITAR_CANCELACION_PEDIDOS",
     "AUTORIZAR_PEDIDOS",
+    "AUTORIZAR_PRODUCCION",
   ]),
   manejadorAsincrono(listarPedidos),
 );
@@ -186,6 +221,7 @@ rutasApi.get(
     "CREAR_PEDIDOS",
     "SOLICITAR_CANCELACION_PEDIDOS",
     "AUTORIZAR_PEDIDOS",
+    "AUTORIZAR_PRODUCCION",
   ]),
   manejadorAsincrono(consultarPedido),
 );
@@ -194,6 +230,12 @@ rutasApi.post(
   manejadorAsincrono(requerirSesion),
   requerirPermiso("CREAR_PEDIDOS"),
   manejadorAsincrono(registrarPedido),
+);
+rutasApi.post(
+  "/pedidos/:id/cola",
+  manejadorAsincrono(requerirSesion),
+  requerirPermiso("AUTORIZAR_PRODUCCION"),
+  manejadorAsincrono(incorporarPedidoRegistradoEnCola),
 );
 rutasApi.post(
   "/pedidos/:id/autorizar",

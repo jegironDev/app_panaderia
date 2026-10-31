@@ -10,11 +10,12 @@
           <a class="nav-link" routerLink="/inicio">Inicio</a>
         </li>
 
-        <li class="nav-item dropdown" *ngIf="mostrarUsuarios() || mostrarPuestos() || mostrarProductos() || mostrarRecetas()">
+        <li class="nav-item dropdown" *ngIf="mostrarUsuarios() || mostrarPuestos() || mostrarSucursales() || mostrarProductos() || mostrarRecetas()">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Administración</a>
           <ul class="dropdown-menu">
             <li *ngIf="mostrarUsuarios()"><a class="dropdown-item" routerLink="/usuarios">Usuarios</a></li>
             <li *ngIf="mostrarPuestos()"><a class="dropdown-item" routerLink="/puestos">Puestos</a></li>
+            <li *ngIf="mostrarSucursales()"><a class="dropdown-item" routerLink="/sucursales">Sucursales</a></li>
             <li *ngIf="mostrarProductos()"><a class="dropdown-item" routerLink="/productos">Productos terminados</a></li>
             <li *ngIf="mostrarProductos()"><a class="dropdown-item" routerLink="/materias-primas-insumos">Materias primas e insumos</a></li>
             <li *ngIf="mostrarGestionInventario()"><a class="dropdown-item" routerLink="/gestion-inventario">Gestión de inventario</a></li>

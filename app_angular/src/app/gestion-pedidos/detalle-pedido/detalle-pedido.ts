@@ -52,7 +52,7 @@ export class DetallePedido implements OnInit {
   }
 
   puedeAutorizar(): boolean {
-    return puedeAutorizarPedido(this.pedido?.ESTADO, this.api.tienePermiso('AUTORIZAR_PEDIDOS'));
+    return puedeAutorizarPedido(this.pedido?.ESTADO, this.api.tienePermiso('AUTORIZAR_PRODUCCION'));
   }
 
   puedeSolicitarCancelacion(): boolean {
@@ -61,14 +61,6 @@ export class DetallePedido implements OnInit {
       this.pedido?.ID_SUCURSAL,
       this.api.tienePermiso('SOLICITAR_CANCELACION_PEDIDOS'),
     );
-  }
-
-  autorizar() {
-    this.procesando = true; this.error = ''; this.exito = ''; this.cdr.markForCheck();
-    this.api.autorizarPedido(this.identificadorPedido).subscribe({
-      next: pedido => { this.pedido = pedido; this.procesando = false; this.exito = 'Pedido autorizado correctamente.'; this.cdr.markForCheck(); },
-      error: error => { this.procesando = false; this.mostrarError(error, 'No fue posible autorizar el pedido.'); },
-    });
   }
 
   solicitarCancelacion() {

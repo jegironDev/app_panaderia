@@ -41,7 +41,7 @@ export async function consultarUsuarios() {
   }
 }
 
-export async function crearUsuario(datos) {
+export async function crearUsuario(datos, identificadorResponsable) {
   const conexion = await obtenerConexion();
   const hashContrasena = await crearHashContrasena(datos.contrasena);
   const candidatos = generarCandidatosUsuario(datos.primerNombre, datos.primerApellido);
@@ -81,6 +81,7 @@ export async function crearUsuario(datos) {
         if (puesto) {
           await conexion.execute('INSERT INTO USUARIO_ROL (ID_USUARIO, ID_ROL) VALUES (:identificadorUsuario, :identificadorPuesto)', { identificadorUsuario, identificadorPuesto: puesto.ID_ROL });
         }
+        await registrarBitacoraUsuario(conexion, identificadorResponsable, identificadorUsuario, 'CREADO', 'Usuario creado.');
         await conexion.commit();
         return consultarUsuarioPorIdentificador(identificadorUsuario);
       } catch (error) {
@@ -97,7 +98,7 @@ export async function crearUsuario(datos) {
   } finally { await conexion.close(); }
 }
 
-export async function editarUsuario(id, datos) {
+export async function editarUsuario(id, datos, identificadorResponsable) {
   const conexion=await obtenerConexion();
   try {
     const puesto = datos.identificadorPuesto ? await obtenerPuestoActivo(conexion, datos.identificadorPuesto) : null;
@@ -106,6 +107,7 @@ export async function editarUsuario(id, datos) {
     const r=await conexion.execute(`UPDATE USUARIO SET ID_SUCURSAL=:identificadorSucursal,PRIMER_NOMBRE=:primerNombre,SEGUNDO_NOMBRE=:segundoNombre,PRIMER_APELLIDO=:primerApellido,SEGUNDO_APELLIDO=:segundoApellido,PUESTO=:puesto,TIPO=:tipo WHERE ID_USUARIO=:id`,{id,identificadorSucursal:datosNormalizados.identificadorSucursal,primerNombre:datos.primerNombre,segundoNombre:datos.segundoNombre,primerApellido:datos.primerApellido,segundoApellido:datos.segundoApellido,puesto:puesto?.NOMBRE || datos.puesto,tipo:datosNormalizados.tipo});
     if(!r.rowsAffected){const e=new Error('Usuario no encontrado');e.codigoEstado=404;throw e;}
     if (puesto) await actualizarPuestoPrincipal(conexion, id, puesto.ID_ROL);
+    await registrarBitacoraUsuario(conexion, identificadorResponsable, id, 'EDITADO', 'Datos administrativos actualizados.');
     await conexion.commit(); return consultarUsuarioPorIdentificador(id);
   } catch(error){await conexion.rollback();throw error;} finally{await conexion.close();}
 }
@@ -135,6 +137,11 @@ async function verificarReglaSucursal(conexion, datos) {
 
 // Cambia el estado lógico de una cuenta sin eliminar su historial.
 export async function cambiarEstadoUsuario(id, estado, identificadorSolicitante) {
+  if (estado !== 'I') {
+    const error = new Error('La baja de un usuario es irreversible.');
+    error.codigoEstado = 409;
+    throw error;
+  }
   if (id === identificadorSolicitante) {
     const error = new Error('No puede cambiar su propio estado');
     error.codigoEstado = 400;
@@ -160,9 +167,18 @@ export async function cambiarEstadoUsuario(id, estado, identificadorSolicitante)
       error.codigoEstado = 404;
       throw error;
     }
+    await registrarBitacoraUsuario(conexion, identificadorSolicitante, id, 'BAJA', 'Usuario dado de baja.');
     await conexion.commit();
     return consultarUsuarioPorIdentificador(id);
   } catch (error) { await conexion.rollback(); throw error; } finally { await conexion.close(); }
+}
+
+async function registrarBitacoraUsuario(conexion, identificadorResponsable, identificadorAfectado, accion, comentario) {
+  await conexion.execute(
+    `INSERT INTO BITACORA_USUARIOS (ID_USUARIO, ID_USUARIO_AFECTADO, ACCION, COMENTARIO)
+     VALUES (:identificadorResponsable, :identificadorAfectado, :accion, :comentario)`,
+    { identificadorResponsable, identificadorAfectado, accion, comentario },
+  );
 }
 
 // La clasificación técnica se mantiene corta para respetar la columna TIPO;

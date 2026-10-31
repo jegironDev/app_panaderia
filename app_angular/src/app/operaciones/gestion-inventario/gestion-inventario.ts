@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, ExistenciaInventario, ProductoDetallado, Abastecimiento } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
+import { FechaGuatemalaPipe } from '../../compartidos/tuberias/fecha-guatemala.pipe';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, BarraNavegacion],
+  imports: [CommonModule, FormsModule, BarraNavegacion, FechaGuatemalaPipe],
   templateUrl: './gestion-inventario.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -43,7 +44,6 @@ export class GestionInventario implements OnInit {
   registrarIngreso(){const cantidad=Number(this.cantidad);const producto=this.productos.find(producto=>producto.ID_PRODUCTO===Number(this.identificadorProducto));if(!producto||!Number.isFinite(cantidad)||cantidad<=0){this.error='Seleccione una materia prima o insumo e ingrese una cantidad positiva.';this.cdr.markForCheck();return;}this.procesandoIngreso=true;this.error='';this.api.registrarAbastecimiento({identificadorProducto:producto.ID_PRODUCTO,identificadorUnidadMedida:producto.ID_UNIDAD_MEDIDA,cantidad}).subscribe({next:()=>{this.mensaje='Ingreso registrado correctamente.';this.cantidad=null;this.procesandoIngreso=false;this.cargar();this.cdr.markForCheck();},error:error=>{this.procesandoIngreso=false;this.mostrarError(error)}});}
   abrirMinimo(fila:ExistenciaInventario){this.productoMinimo=fila;this.existenciaMinima=Number(fila.EXISTENCIA_MINIMA);}
   guardarMinimo(){if(!this.productoMinimo||this.existenciaMinima===null)return;this.api.actualizarMinimoInventario(this.productoMinimo.ID_PRODUCTO,Number(this.existenciaMinima)).subscribe({next:()=>{this.mensaje='Existencia mínima actualizada.';this.productoMinimo=null;this.cargar();},error:error=>this.mostrarError(error)});}
-  fechaLocal(valor:string){const fecha=new Date(valor);return Number.isNaN(fecha.getTime())?'—':new Intl.DateTimeFormat('es-GT',{timeZone:'America/Guatemala',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(fecha).replace(',', '');}
   cantidadMovimiento(movimiento:Abastecimiento){const cantidad=Number(movimiento.EXISTENCIA_NUEVA)-Number(movimiento.EXISTENCIA_ANTERIOR);return Number.isInteger(Math.round(cantidad*100))?cantidad.toFixed(2).replace(/\.00$/,''):cantidad.toFixed(2);}
   descripcionMovimiento(movimiento:Abastecimiento){
     const tipo=String(movimiento.TIPO_MOVIMIENTO||'').toLowerCase()==='entrada'?'Entrada':'Salida';

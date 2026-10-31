@@ -6,9 +6,9 @@ import { bloquearControlCola, estaColaPedidosHabilitada, obtenerNuevaPosicionCol
 
 const formatoFilas = { outFormat: oracledb.OUT_FORMAT_OBJECT };
 
-// AUTORIZAR_PEDIDOS es la regla aprobada de alcance global para pedidos.
+// Quien autoriza pedidos o producción requiere consultar todas las sucursales para gestionar el ciclo completo.
 export function tieneAccesoGlobalPedidos(identidad) {
-  return identidad.permisos.includes('AUTORIZAR_PEDIDOS');
+  return identidad.permisos.includes('AUTORIZAR_PEDIDOS') || identidad.permisos.includes('AUTORIZAR_PRODUCCION');
 }
 
 export async function consultarPedidos(identidad) {

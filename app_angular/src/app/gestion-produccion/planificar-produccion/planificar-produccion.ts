@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, OpcionPlanificacionProduccion, PedidoResumen, PlanificacionProduccion, obtenerMensajeErrorHttp } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
+import { forkJoin } from 'rxjs';
 
 @Component({
   standalone: true,
@@ -12,6 +13,7 @@ import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/
 })
 export class PlanificarProduccion implements OnInit, OnDestroy {
   pedidos: PedidoResumen[] = [];
+  pendientesSinCola: PedidoResumen[] = [];
   opciones: OpcionPlanificacionProduccion | null = null;
   plan: PlanificacionProduccion | null = null;
   selecciones: Array<{ identificadorDetallePedido: number; identificadorReceta: number }> = [];
@@ -20,15 +22,24 @@ export class PlanificarProduccion implements OnInit, OnDestroy {
   error = '';
   exito = '';
   confirmarAutorizacion = false;
+  incorporandoPedido: number | null = null;
 
   constructor(private readonly api: ApiService, private readonly router: Router, private readonly cdr: ChangeDetectorRef) {}
   ngOnInit() { this.cargarPedidos(); }
   ngOnDestroy() { this.limpiarModal(); }
   cargarPedidos() {
     this.cargando = true; this.error = '';
-    this.api.pedidosEnCola().subscribe({
-      next: pedidos => { this.pedidos = pedidos; this.cargando = false; this.cdr.markForCheck(); },
+    forkJoin({ cola: this.api.pedidosEnCola(), pendientes: this.api.pedidosPendientesSinCola() }).subscribe({
+      next: resultado => { this.pedidos = resultado.cola; this.pendientesSinCola = resultado.pendientes; this.cargando = false; this.cdr.markForCheck(); },
       error: error => this.mostrarError(error, 'No fue posible consultar la cola de pedidos.'),
+    });
+  }
+  incorporarEnCola(idPedido: number) {
+    if (this.incorporandoPedido !== null || this.procesando) return;
+    this.incorporandoPedido = idPedido; this.error = ''; this.cdr.markForCheck();
+    this.api.incorporarPedidoEnCola(idPedido).subscribe({
+      next: () => { this.incorporandoPedido = null; this.exito = 'Pedido incorporado a la cola de producción.'; this.cargarPedidos(); this.cdr.markForCheck(); },
+      error: error => { this.incorporandoPedido = null; this.mostrarError(error, 'No fue posible incorporar el pedido a la cola.'); },
     });
   }
   seleccionarPedido(idPedido: number) {

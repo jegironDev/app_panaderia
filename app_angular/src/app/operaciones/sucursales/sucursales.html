@@ -1,0 +1,43 @@
+<app-barra-navegacion></app-barra-navegacion>
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3"><h1 class="mb-0">Gestión de sucursales</h1><button class="btn btn-primary" type="button" (click)="crear()" [disabled]="procesando">Crear sucursal</button></div>
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+  <div *ngIf="mensaje" class="alert alert-success">{{ mensaje }}</div>
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div *ngIf="cargando" class="text-muted">Cargando sucursales...</div>
+      <div class="table-responsive" *ngIf="!cargando">
+        <table class="table align-middle">
+          <thead><tr><th>Nombre de sucursal</th><th>Estado</th><th class="text-end">Acciones</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let sucursal of sucursales">
+              <td>{{ sucursal.NOMBRE }}</td>
+              <td><span class="badge" [class.text-bg-success]="sucursal.ESTADO === 'A'" [class.text-bg-danger]="sucursal.ESTADO !== 'A'">{{ sucursal.ESTADO === 'A' ? 'ACTIVA' : 'INACTIVA' }}</span></td>
+              <td class="text-end">
+                <button *ngIf="puedeEditar(sucursal)" class="btn btn-sm btn-primary me-2" type="button" (click)="editar(sucursal)">Editar</button>
+                <button *ngIf="puedeEditar(sucursal)" class="btn btn-sm btn-danger" type="button" (click)="solicitarInhabilitacion(sucursal)">Inhabilitar</button>
+              </td>
+            </tr>
+            <tr *ngIf="!sucursales.length"><td colspan="3" class="text-muted">No hay sucursales registradas.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <aside class="col-lg-4" *ngIf="sucursalEdicion">
+      <div class="card"><div class="card-body">
+        <h2 class="h5">{{ sucursalEdicion.ID_SUCURSAL === 0 ? 'Crear sucursal' : 'Editar sucursal' }}</h2>
+        <label class="form-label" for="nombreSucursal">Nombre</label>
+        <input id="nombreSucursal" class="form-control mb-3" maxlength="100" [(ngModel)]="nombre" [disabled]="procesando">
+        <button class="btn btn-primary" type="button" [disabled]="procesando" (click)="guardar()">Guardar</button>
+        <button class="btn btn-secondary ms-2" type="button" [disabled]="procesando" (click)="cancelarEdicion()">Cancelar</button>
+      </div></div>
+    </aside>
+  </div>
+</main>
+<div *ngIf="sucursalConfirmacion" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.45)">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title fs-5">Inhabilitar sucursal</h2></div>
+    <div class="modal-body">¿Desea inhabilitar <strong>{{ sucursalConfirmacion.NOMBRE }}</strong>? Esta operación es irreversible y se bloqueará si la sucursal tiene operaciones activas.</div>
+    <div class="modal-footer"><button class="btn btn-secondary" type="button" [disabled]="procesando" (click)="cancelarInhabilitacion()">Cancelar</button><button class="btn btn-danger" type="button" [disabled]="procesando" (click)="inhabilitar()">Inhabilitar</button></div>
+  </div></div>
+</div>

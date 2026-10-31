@@ -27,6 +27,7 @@ import { Bitacoras } from './operaciones/bitacoras/bitacoras';
 import { GestionInventario } from './operaciones/gestion-inventario/gestion-inventario';
 import { Productos } from './gestion-productos/productos/productos';
 import { MateriasPrimas } from './gestion-productos/materias-primas/materias-primas';
+import { Sucursales } from './operaciones/sucursales/sucursales';
 import { requerirPermiso, requerirSesion } from './compartidos/seguridad/guardias-rutas';
 
 export const routes: Routes = [
@@ -36,6 +37,7 @@ export const routes: Routes = [
   { path: 'usuarios/nuevo', component: CrearUsuario, canActivate: [requerirPermiso], data: { permisos: ['CREAR_USUARIOS'] } },
   { path: 'usuarios/:id/editar', component: EditarUsuario, canActivate: [requerirPermiso], data: { permisos: ['EDITAR_USUARIOS'] } },
   { path: 'puestos', component: Puestos, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PUESTOS'] } },
+  { path: 'sucursales', component: Sucursales, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_SUCURSALES'] } },
   { path: 'productos', component: Productos, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PRODUCTOS'] } },
   { path: 'materias-primas-insumos', component: MateriasPrimas, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_PRODUCTOS'] } },
   // Se conserva la dirección histórica sin mantener un segundo formulario de inventario.
@@ -49,9 +51,9 @@ export const routes: Routes = [
   { path: 'bitacoras/:tipo', component: Bitacoras, canActivate: [requerirPermiso], data: { permisos: ['VER_REPORTES'] } },
   { path: 'rutas', component: Rutas, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_RUTAS'] } },
   { path: 'mi-ruta', component: MiRuta, canActivate: [requerirPermiso], data: { permisos: ['CONSULTAR_MI_RUTA'] } },
-  { path: 'pedidos', component: Pedidos, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS'] } },
+  { path: 'pedidos', component: Pedidos, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS', 'AUTORIZAR_PRODUCCION'] } },
   { path: 'pedidos/nuevo', component: CrearPedido, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS'] } },
-  { path: 'pedidos/:id', component: DetallePedido, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS'] } },
+  { path: 'pedidos/:id', component: DetallePedido, canActivate: [requerirPermiso], data: { permisos: ['CREAR_PEDIDOS', 'SOLICITAR_CANCELACION_PEDIDOS', 'AUTORIZAR_PEDIDOS', 'AUTORIZAR_PRODUCCION'] } },
   { path: 'recetas', component: Recetas, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS'] } },
   { path: 'recetas/nueva', component: CrearReceta, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_RECETAS'] } },
   { path: 'recetas/:id', component: DetalleReceta, canActivate: [requerirPermiso], data: { permisos: ['GESTIONAR_RECETAS', 'AUTORIZAR_PEDIDOS'] } },

@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ApiService, PedidoResumen } from '../../api.service';
 import { BarraNavegacion } from '../../compartidos/componentes/barra-navegacion/barra-navegacion';
+import { FechaGuatemalaPipe } from '../../compartidos/tuberias/fecha-guatemala.pipe';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink, BarraNavegacion],
+  imports: [CommonModule, RouterLink, BarraNavegacion, FechaGuatemalaPipe],
   templateUrl: './pedidos.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -30,6 +31,8 @@ export class Pedidos implements OnInit {
       && Number.isInteger(identificadorSucursal)
       && (identificadorSucursal as number) > 0;
   }
+
+  puedeGestionarProduccion(): boolean { return this.api.tienePermiso('AUTORIZAR_PRODUCCION'); }
 
   private mostrarError(error: any, mensaje: string) {
     this.cargando = false;

@@ -11,19 +11,20 @@ const longitudes = { primerNombre: 50, segundoNombre: 50, primerApellido: 50, se
 
 export async function registrarUsuario(solicitud, respuesta) {
   const datos = validarDatosUsuario(solicitud.body, camposCreacion, true);
-  respuesta.status(201).json(await crearUsuario(datos));
+  respuesta.status(201).json(await crearUsuario(datos, solicitud.identidad.identificadorUsuario));
 }
 
 export async function modificarUsuario(solicitud, respuesta) {
   const id = validarIdentificador(solicitud.params.id);
   const datos = validarDatosUsuario(solicitud.body, camposEdicion, false);
-  respuesta.json(await editarUsuario(id, datos));
+  respuesta.json(await editarUsuario(id, datos, solicitud.identidad.identificadorUsuario));
 }
 
 export async function actualizarEstadoUsuario(solicitud, respuesta) {
   const id = validarIdentificador(solicitud.params.id);
   const estado = solicitud.body?.estado;
-  if (!['A','I'].includes(estado)) return respuesta.status(400).json({error:'Identificador o estado no válido'});
+  if (!['A', 'I'].includes(estado)) return respuesta.status(400).json({error:'Identificador o estado no válido'});
+  if (estado === 'A') return respuesta.status(409).json({error:'La baja de un usuario es irreversible.'});
   respuesta.json(await cambiarEstadoUsuario(id, estado, solicitud.identidad.identificadorUsuario));
 }
 
